@@ -1,0 +1,131 @@
+
+<!-- jp --> 
+
+<html lang="en">
+<head>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>calc</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/9.5.0/math.js" integrity="sha512-4aKxEISD4pbpzaB58OKEipeE+EyPiuftOmOapUUbPakIRWML5tK0u+FHZ22O/85EEgQjJNUOcldC/PcSDMWALQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async
+          src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+    </script>
+</head>
+<style>
+    div {
+        margin: 10px;
+    }
+</style>
+<body>
+    <h3>DIVISION DE UN SEGMENTO EN UNA RAZON DADA</h3>
+    <div id="dataone">
+        <input id="x1" type="text" placeholder="x1">
+        <input id="y1" type="text" placeholder="y1">
+    </div>
+
+    <div id="datatwo">
+        <input id="x2" type="text" placeholder="x2">
+        <input id="y2" type="text" placeholder="y2">
+    </div>
+
+    <div id="datathree">
+        <input id="r" type="text" placeholder="numerador">
+        <input id="div" type="text" placeholder="denominador">
+        <button id="resbtn">calcular</button>
+    </div>
+    <p id="x">\[x = {x_1 + rx_2 \over 1 + r}\]</p>
+    <p id="y">\[y = {y_1 + ry_2 \over 1 + r}\]</p>
+    <p id="y">\[R = {(x, y)}\]</p>
+
+    <div id="dataresult">
+
+    </div>
+
+</body>
+</html>
+
+<script>
+  //jajajaj no se entiende pero funciona :shrug:
+
+    function calccords(v1, v2, r, div){
+        return (v1 + ((r / div) * v2)) / (1 + (r / div))
+
+    }
+
+    $("#resbtn").click(function () {
+        math.config({
+            number: 'Fraction'
+          })
+        $('#dataresult').empty();
+        x1 = Number($("#x1").val())
+        y1 = Number($("#y1").val())
+    
+        x2 = Number($("#x2").val())
+        y2 = Number($("#y2").val())
+    
+        r = Number($("#r").val())
+        div = Number($("#div").val())
+        
+        $("#dataresult").append("aqui x:")
+        let html1x = MathJax.tex2chtml(`\\ x = {${x1} + \\frac{${r}}{${div}} (${x2}) \\over 1 + \\frac{${r}}{${div}}}\\`);
+
+        let abajox = math.fraction(1 + (r / div))
+        let arribax = math.fraction((r / div) * x2)
+
+        let html2x = MathJax.tex2chtml(`\\ x = {${x1} ${arribax["s"].toString().includes("-") ? '-' : "+"} \\frac{${arribax["n"]}}{${arribax["d"]}} \\over \\frac{${abajox["s"].toString().includes("-") ? '-' : ""}${abajox["n"]}}{${abajox["d"]}}}\\`);
+
+        let arriba2x = math.fraction((x1 + ((r / div) * x2)))
+        let html3x = MathJax.tex2chtml(`\\ x = {\\frac{${arriba2x["s"].toString().includes("-") ? '-' : ""}${arriba2x["n"]}}{${arriba2x["d"]}} \\over \\frac{${abajox["s"].toString().includes("-") ? '-' : ""}${abajox["n"]}}{${abajox["d"]}}}\\`);
+        
+        let arriba3x = math.fraction((x1 + ((r / div) * x2)) / (1 + (r / div)))
+        console.log(arriba3x)
+        let html4x = MathJax.tex2chtml(`\\ x = {\\frac{${arriba3x["s"].toString().includes("-") ? '-' : ""}${arriba3x["n"]}}{${arriba3x["d"]}}}\\`);
+        
+        let html5x = MathJax.tex2chtml(`\\ x = {${calccords(x1, x2, r, div)}}\\`);
+
+
+        $("#dataresult").append(html1x)
+        $("#dataresult").append(html2x)
+        $("#dataresult").append(html3x)
+        $("#dataresult").append(html4x)
+        $("#dataresult").append(html5x)
+        
+        $("#dataresult").append("aqui y:")
+
+        let html1y = MathJax.tex2chtml(`\\ y = {${y1} + \\frac{${r}}{${div}} (${y2}) \\over 1 + \\frac{${r}}{${div}}}\\`);
+
+        let abajoy = math.fraction(1 + (r / div))
+        let arribay = math.fraction((r / div) * y2)
+    
+        let html2y = MathJax.tex2chtml(`\\ y = {${y1} ${arribay["s"].toString().includes("-") ? '-' : "+"} \\frac{${arribay["n"]}}{${arribay["d"]}} \\over \\frac{${abajoy["s"].toString().includes("-") ? '-' : ""}${abajoy["n"]}}{${abajoy["d"]}}}\\`);
+        let arriba2y = math.fraction((y1 + ((r / div) * y2)))
+        let html3y = MathJax.tex2chtml(`\\ y = {\\frac{${arriba2y["s"].toString().includes("-") ? '-' : ""}${arriba2y["n"]}}{${arriba2y["d"]}} \\over \\frac{${abajoy["s"].toString().includes("-") ? '-' : ""}${abajoy["n"]}}{${abajoy["d"]}}}\\`);
+        
+        let arriba3y = math.fraction((y1 + ((r / div) * y2)) / (1 + (r / div)))
+        console.log(arriba3y)
+        let html4y = MathJax.tex2chtml(`\\ y = {\\frac{${arriba3y["s"].toString().includes("-") ? '-' : ""}${arriba3y["n"]}}{${arriba3y["d"]}}}\\`);
+        
+        let html5y = MathJax.tex2chtml(`\\ y = {${calccords(y1, y2, r, div)}}\\`);
+    
+        
+        $("#dataresult").append(html1y)
+        $("#dataresult").append(html2y)
+        $("#dataresult").append(html3y)
+        $("#dataresult").append(html4y)
+        $("#dataresult").append(html5y)
+
+        $("#dataresult").append("entonces:")
+
+        let htmlR = MathJax.tex2chtml(`\\ R= {(${calccords(y1, y2, r, div)}, ${calccords(x1, x2, r, div)})}\\`);
+        $("#dataresult").append(htmlR)
+        
+        $("#dataresult").append(`Copia todo lo de arriba y al finalizar ahora traza un segmento de linea donde A(${x1}, ${y1}), B(${x2}, ${y2}) y marca un punto R(${calccords(y1, y2, r, div)}, ${calccords(x1, x2, r, div)}) que te dio la herramienta (puedes redondear los valores)`)
+
+
+        MathJax.typeset()
+    })
+    
+</script>
