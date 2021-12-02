@@ -19,25 +19,18 @@
     }
 </style>
 <body>
-    <h3>DIVISION DE UN SEGMENTO EN UNA RAZON DADA</h3>
+    <h3>HALLAR LA ECUACIÓN GENERAL DE LA CIRCUNFERENCIA CONOCIENDO EL CENTRO Y EL RADIO</h3>
     <div id="dataone">
-        <input id="x1" type="text" placeholder="x1">
-        <input id="y1" type="text" placeholder="y1">
+        <input id="x1" type="text" placeholder="x">
+        <input id="y1" type="text" placeholder="y">
+        <input id="r" type="text" placeholder="r">
+        <button id="resbtn">calc</button>
     </div>
 
-    <div id="datatwo">
-        <input id="x2" type="text" placeholder="x2">
-        <input id="y2" type="text" placeholder="y2">
-    </div>
+    <p id="1f">\[(x - h)^2 + (y - k)^2 = r^2\]</p>
+    <p id="2f">\[(a \pm b)^2 = a^2 \pm 2ab+b^2\]</p>
+    <p id="3f">\[x^2 + y^2 + Dx + Ey + F = 0\]</p>
 
-    <div id="datathree">
-        <input id="r" type="text" placeholder="numerador">
-        <input id="div" type="text" placeholder="denominador">
-        <button id="resbtn">calcular</button>
-    </div>
-    <p id="x">\[x = {x_1 + rx_2 \over 1 + r}\]</p>
-    <p id="y">\[y = {y_1 + ry_2 \over 1 + r}\]</p>
-    <p id="y">\[R = {(x, y)}\]</p>
 
     <div id="dataresult">
 
@@ -47,5 +40,34 @@
 </html>
 
 <script>
-function calccords(a,t,r,e){return(a+r/e*t)/(1+r/e)}$("#resbtn").click(function(){math.config({number:"Fraction"}),$("#dataresult").empty(),x1=Number($("#x1").val()),y1=Number($("#y1").val()),x2=Number($("#x2").val()),y2=Number($("#y2").val()),r=Number($("#r").val()),div=Number($("#div").val()),$("#dataresult").append("aqui x:");let a=MathJax.tex2chtml(`\\ x = {${x1} + \\frac{${r}}{${div}} (${x2}) \\over 1 + \\frac{${r}}{${div}}}\\`),t=math.fraction(1+r/div),e=math.fraction(r/div*x2),d=MathJax.tex2chtml(`\\ x = {${x1} ${e.s.toString().includes("-")?"-":"+"} \\frac{${e.n}}{${e.d}} \\over \\frac{${t.s.toString().includes("-")?"-":""}${t.n}}{${t.d}}}\\`),n=math.fraction(x1+r/div*x2),c=MathJax.tex2chtml(`\\ x = {\\frac{${n.s.toString().includes("-")?"-":""}${n.n}}{${n.d}} \\over \\frac{${t.s.toString().includes("-")?"-":""}${t.n}}{${t.d}}}\\`),l=math.fraction((x1+r/div*x2)/(1+r/div));console.log(l);let i=MathJax.tex2chtml(`\\ x = {\\frac{${l.s.toString().includes("-")?"-":""}${l.n}}{${l.d}}}\\`),o=MathJax.tex2chtml(`\\ x = {${calccords(x1,x2,r,div)}}\\`);$("#dataresult").append(a),$("#dataresult").append(d),$("#dataresult").append(c),$("#dataresult").append(i),$("#dataresult").append(o),$("#dataresult").append("aqui y:");let s=MathJax.tex2chtml(`\\ y = {${y1} + \\frac{${r}}{${div}} (${y2}) \\over 1 + \\frac{${r}}{${div}}}\\`),x=math.fraction(1+r/div),u=math.fraction(r/div*y2),p=MathJax.tex2chtml(`\\ y = {${y1} ${u.s.toString().includes("-")?"-":"+"} \\frac{${u.n}}{${u.d}} \\over \\frac{${x.s.toString().includes("-")?"-":""}${x.n}}{${x.d}}}\\`),v=math.fraction(y1+r/div*y2),h=MathJax.tex2chtml(`\\ y = {\\frac{${v.s.toString().includes("-")?"-":""}${v.n}}{${v.d}} \\over \\frac{${x.s.toString().includes("-")?"-":""}${x.n}}{${x.d}}}\\`),m=math.fraction((y1+r/div*y2)/(1+r/div));console.log(m);let y=MathJax.tex2chtml(`\\ y = {\\frac{${m.s.toString().includes("-")?"-":""}${m.n}}{${m.d}}}\\`),f=MathJax.tex2chtml(`\\ y = {${calccords(y1,y2,r,div)}}\\`);$("#dataresult").append(s),$("#dataresult").append(p),$("#dataresult").append(h),$("#dataresult").append(y),$("#dataresult").append(f),$("#dataresult").append("entonces:");let g=MathJax.tex2chtml(`\\ R= {(${calccords(x1,x2,r,div)}, ${calccords(y1,y2,r,div)})}\\`);$("#dataresult").append(g),$("#dataresult").append(`Copia todo lo de arriba y al finalizar ahora traza un segmento de linea donde A(${x1}, ${y1}), B(${x2}, ${y2}) y marca un punto R(${calccords(x1,x2,r,div)}, ${calccords(y1,y2,r,div)}) que te dio la herramienta (puedes redondear los valores)`),MathJax.typeset()});
+    $("#resbtn").click(function () {
+        math.config({
+            number: 'Fraction'
+          })
+        $('#dataresult').empty();
+        x1 = Number($("#x1").val())
+        y1 = Number($("#y1").val())
+        r = Number($("#r").val())
+
+        let html1x = MathJax.tex2chtml(`\\ r=${r}, \\ C(${x1}, ${y1})\\`);
+
+        x1 *= -1
+        y1 *= -1
+        
+        $("#dataresult").append("resultados:")
+        let html2x = MathJax.tex2chtml(`\\ (x ${Math.sign(x1) < 0 ? '-' : '+' } ${Math.abs(x1)})^2 + (y ${Math.sign(x1) < 0 ? '-' : '+' } ${Math.abs(y1)})^2 = ${r**2}`);
+        let html3x = MathJax.tex2chtml(`\\ x^2 ${Math.sign(x1) < 0 ? '-' : '+' } 2x${Math.abs(x1)} + ${Math.abs(x1**2)} + y^2 ${Math.sign(y1) < 0 ? '-' : '+' } 2y${Math.abs(y1)} + ${Math.abs(y1**2)}\\ = ${r**2}`);
+        let html4x = MathJax.tex2chtml(`\\ x^2 ${Math.sign(x1) < 0 ? '-' : '+' } ${Math.abs(x1*2)}x + ${Math.abs(x1**2)} + y^2 ${Math.sign(y1) < 0 ? '-' : '+' } ${Math.abs(y1*2)}y + ${Math.abs(y1**2)}\\ = ${r**2}`);
+
+        var suma = (x1**2) + (y1**2) - (r**2)
+        let html5x = MathJax.tex2chtml(`\\ x^2 +  y^2 ${Math.sign(x1) < 0 ? '-' : '+' } ${Math.abs(x1*2)}x ${Math.sign(y1) < 0 ? '-' : '+' } ${Math.abs(y1*2)}y ${Math.sign(suma) < 0 ? '-' : '+' } ${Math.abs(suma)}\\ = 0`);
+        $("#dataresult").append(html1x)
+        $("#dataresult").append(html2x)
+        $("#dataresult").append(html3x)
+        $("#dataresult").append(html4x)
+        $("#dataresult").append(html5x)
+
+        MathJax.typeset()
+    })
+    
 </script>
