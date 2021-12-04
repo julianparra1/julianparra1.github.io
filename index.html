@@ -54,7 +54,7 @@
         y1 *= -1
         
         $("#dataresult").append("resultados:")
-        let html2x = MathJax.tex2chtml(`\\ (x ${Math.sign(x1) < 0 ? '-' : '+' } ${Math.abs(x1)})^2 + (y ${Math.sign(x1) < 0 ? '-' : '+' } ${Math.abs(y1)})^2 = ${r**2}`);
+        let html2x = MathJax.tex2chtml(`\\ (x ${Math.sign(x1) < 0 ? '-' : '+' } ${Math.abs(x1)})^2 + (y ${Math.sign(y1) < 0 ? '-' : '+' } ${Math.abs(y1)})^2 = ${r**2}`);
         let html3x = MathJax.tex2chtml(`\\ x^2 ${Math.sign(x1) < 0 ? '-' : '+' } 2x${Math.abs(x1)} + ${Math.abs(x1**2)} + y^2 ${Math.sign(y1) < 0 ? '-' : '+' } 2y${Math.abs(y1)} + ${Math.abs(y1**2)}\\ = ${r**2}`);
         let html4x = MathJax.tex2chtml(`\\ x^2 ${Math.sign(x1) < 0 ? '-' : '+' } ${Math.abs(x1*2)}x + ${Math.abs(x1**2)} + y^2 ${Math.sign(y1) < 0 ? '-' : '+' } ${Math.abs(y1*2)}y + ${Math.abs(y1**2)}\\ = ${r**2}`);
 
