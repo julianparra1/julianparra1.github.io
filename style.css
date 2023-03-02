@@ -1,0 +1,45 @@
+body, html {
+    height: 100%;
+}
+
+body {
+    display: flex;
+    flex-flow: column;
+    height: 100%;
+  }
+
+* {
+    margin: 0;
+    padding: 0;
+}
+
+.banner {
+    text-align: center;
+    border-bottom: 1px solid #000;
+    margin-bottom: 10px;
+    display: flex;
+    flex-flow: column;
+}
+.main {
+    justify-content: center;
+    margin: auto;
+    margin-bottom: 10px;
+    gap: 200px;
+    flex-wrap: wrap;
+    display: flex;
+    flex: auto auto auto;
+    width: 80%;
+    border: 1px solid #000;
+    height: 100%;
+}
+
+.card {
+    padding: 1rem;
+    border: 1px solid #000;
+
+}
+
+h1, p {
+    font-family: 'Gajraj One', cursive;
+    padding-bottom: 5px;
+}
