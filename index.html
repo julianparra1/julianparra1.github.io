@@ -1,70 +1,39 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>calc</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/9.5.0/math.js" integrity="sha512-4aKxEISD4pbpzaB58OKEipeE+EyPiuftOmOapUUbPakIRWML5tK0u+FHZ22O/85EEgQjJNUOcldC/PcSDMWALQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-    <script id="MathJax-script" async
-          src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
-    </script>
+    <title>ChoreMP</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Gajraj+One&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="favicon.jpg">
+
 </head>
-<style>
-    div {
-        margin: 10px;
-    }
-</style>
 <body>
-    <h3>HALLAR LA ECUACIÓN GENERAL DE LA CIRCUNFERENCIA CONOCIENDO EL CENTRO Y EL RADIO</h3>
-    <div id="dataone">
-        <input id="x1" type="text" placeholder="x">
-        <input id="y1" type="text" placeholder="y">
-        <input id="r" type="text" placeholder="r">
-        <button id="resbtn">calc</button>
+    <div class="banner">
+        <h1>Bienvenido a la ChoreWeb</h1>
+        <p>La casa de la motocicleta</p>
     </div>
-
-    <p id="1f">\[(x - h)^2 + (y - k)^2 = r^2\]</p>
-    <p id="2f">\[(a \pm b)^2 = a^2 \pm 2ab+b^2\]</p>
-    <p id="3f">\[x^2 + y^2 + Dx + Ey + F = 0\]</p>
-
-    <div id="dataresult">
-
+    <div class="main">
+        <div class="card">
+            <p class="card_title">Title</p>
+            <p>card content</p>
+        </div>
+        <div class="card">
+            <p class="card_title">Title</p>
+            <p>card content</p>
+        </div>
+        <div class="card">
+            <p class="card_title">Title</p>
+            <p>card content</p>
+        </div>
+        <div class="card">
+            <p class="card_title">Title</p>
+            <p>card content</p>
+        </div>
     </div>
-
 </body>
 </html>
-
-<script>
-    $("#resbtn").click(function () {
-        math.config({
-            number: 'Fraction'
-          })
-        $('#dataresult').empty();
-        x1 = Number($("#x1").val())
-        y1 = Number($("#y1").val())
-        r = Number($("#r").val())
-
-        let html1x = MathJax.tex2chtml(`\\ r=${r}, \\ C(${x1}, ${y1})\\`);
-
-        x1 *= -1
-        y1 *= -1
-        
-        $("#dataresult").append("resultados:")
-        let html2x = MathJax.tex2chtml(`\\ (x ${Math.sign(x1) < 0 ? '-' : '+' } ${Math.abs(x1)})^2 + (y ${Math.sign(y1) < 0 ? '-' : '+' } ${Math.abs(y1)})^2 = ${r**2}`);
-        let html3x = MathJax.tex2chtml(`\\ x^2 ${Math.sign(x1) < 0 ? '-' : '+' } 2x${Math.abs(x1)} + ${Math.abs(x1**2)} + y^2 ${Math.sign(y1) < 0 ? '-' : '+' } 2y${Math.abs(y1)} + ${Math.abs(y1**2)}\\ = ${r**2}`);
-        let html4x = MathJax.tex2chtml(`\\ x^2 ${Math.sign(x1) < 0 ? '-' : '+' } ${Math.abs(x1*2)}x + ${Math.abs(x1**2)} + y^2 ${Math.sign(y1) < 0 ? '-' : '+' } ${Math.abs(y1*2)}y + ${Math.abs(y1**2)}\\ = ${r**2}`);
-
-        var suma = (x1**2) + (y1**2) - (r**2)
-        let html5x = MathJax.tex2chtml(`\\ x^2 +  y^2 ${Math.sign(x1) < 0 ? '-' : '+' } ${Math.abs(x1*2)}x ${Math.sign(y1) < 0 ? '-' : '+' } ${Math.abs(y1*2)}y ${Math.sign(suma) < 0 ? '-' : '+' } ${Math.abs(suma)}\\ = 0`);
-        $("#dataresult").append(html1x)
-        $("#dataresult").append(html2x)
-        $("#dataresult").append(html3x)
-        $("#dataresult").append(html4x)
-        $("#dataresult").append(html5x)
-
-        MathJax.typeset()
-    })
-    
-</script>
