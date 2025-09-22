@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Cadenas Gramaticales</title>
+    <style>
+        :root {
+            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: #fff;
+            color: #000;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+
+        main.container {
+            max-width: 960px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 1.75rem;
+            margin-bottom: 0.5rem;
+            font-weight: 400;
+            letter-spacing: 0.05em;
+        }
+        
+        .header-url {
+            text-align: center;
+            font-family: var(--font-mono);
+            color: #888;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+        }
+        
+        h3 {
+           font-size: 1.1rem;
+           margin-top: 1.5rem;
+           border-bottom: 1px solid #000;
+           padding-bottom: 0.5rem;
+           font-weight: 400;
+        }
+
+        article {
+            border: 1px solid #000;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        article > header {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .grid {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        @media (min-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        
+        textarea#grammarInput {
+            width: 100%;
+            box-sizing: border-box;
+            height: 200px;
+            resize: none;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            padding: 0.75rem;
+            border: 1px solid #000;
+            margin-bottom: 1rem;
+        }
+
+        textarea:focus {
+            outline: 2px solid #000;
+            outline-offset: 2px;
+        }
+
+        button {
+            background: #000;
+            color: #fff;
+            border: 1px solid #000;
+            padding: 0.75rem 1.5rem;
+            font-size: 0.8rem;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: all 0.2s;
+            width: 100%;
+        }
+
+        button:hover {
+            background: #333;
+            border-color: #333;
+        }
+
+        button.secondary {
+            background: #fff;
+            color: #000;
+        }
+
+        button.secondary:hover {
+            background: #f0f0f0;
+        }
+        
+        select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-color: #fff;
+            border: 1px solid #000;
+            padding: 0.75rem;
+            font-size: 0.9rem;
+            width: 100%;
+            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cpath%20d%3D%22M5%208l5%205%205-5z%22%20fill%3D%22%23000%22/%3E%3C/svg%3E');
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1em;
+        }
+
+        .history-list {
+            height: 240px;
+            overflow-y: auto;
+            border: 1px solid #000;
+            padding: 1rem;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+        }
+        
+        .history-item {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #000;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .empty-state {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            color: #888;
+        }
+        
+        #generationButton {
+            width: 100%;
+        }
+
+        #results-container {
+            margin-top: 2rem;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        
+        #results-container.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .result-string {
+            font-size: 1.2rem;
+            font-family: var(--font-mono);
+            margin-bottom: 1rem;
+            white-space: pre-wrap; /* Muestra los saltos de línea correctamente */
+        }
+
+        .derivation-steps {
+            font-size: 0.9rem;
+            font-family: var(--font-mono);
+            line-height: 1.8;
+            white-space: pre-wrap;
+            word-break: break-all;
+            background-color: #f0f0f0;
+            padding: 1rem;
+            border: 1px solid #000;
+        }
+
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translate(-50%, 100px);
+            background-color: #000;
+            color: #fff;
+            padding: 12px 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            transition: transform 0.4s ease-in-out;
+            z-index: 1000;
+        }
+
+        .notification.show {
+            transform: translate(-50%, 0);
+        }
+
+        details {
+            border: 1px solid #000;
+            padding: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        details > summary {
+            cursor: pointer;
+            font-weight: 500;
+        }
+        
+        details article {
+            border: none;
+            padding: 1rem 0 0 0;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <h1>Generador Gramatical</h1>
+        <div class="header-url">gatomiau.app/gen</div>
+        
+        <details>
+            <summary>Ayuda y Documentación</summary>
+            <article>
+                <h3>i) Introducción al Tema</h3>
+                <p>Una <strong>gramática formal</strong> es un sistema que describe un lenguaje, especificando un conjunto de reglas para formar cadenas válidas. Son la base para herramientas como los compiladores, que analizan el código fuente para verificar si es sintácticamente correcto.</p>
+                <p>Este programa genera cadenas a través de un proceso llamado <strong>derivación</strong>, partiendo de un símbolo inicial y aplicando reglas de producción para sustituir símbolos <strong>no terminales</strong> (variables) hasta que la cadena contiene únicamente símbolos <strong>terminales</strong> (el alfabeto del lenguaje).</p>
+
+                <h3>ii) ¿Cómo Utilizar la Interfaz?</h3>
+                <p><strong>1. Definir Gramática:</strong> Escribe las reglas en el primer panel. El formato es <code>NO_TERMINAL -> produccion1 | produccion2</code>. El primer no-terminal definido se toma como el símbolo inicial.</p>
+                <p><strong>2. Generar Cadena:</strong> Haz clic en el botón "Generar Nueva Cadena". El sistema producirá un resultado único y lo mostrará junto con su derivación.</p>
+                <p><strong>3. Historial:</strong> El panel de historial almacena todas las cadenas únicas generadas durante la sesión actual para una referencia rápida.</p>
+
+                <h3>iii) Aspectos Técnicos</h3>
+                <p>Esta aplicación está construida con tecnologías web estándar (HTML, CSS, JavaScript) y no utiliza librerías externas para su diseño.</p>
+                <ul>
+                    <li><strong>Parser:</strong> Una función de JavaScript analiza el texto de entrada y lo convierte en una estructura de datos (objeto) que representa la gramática.</li>
+                    <li><strong>Algoritmo de Derivación:</strong> Se implementa una derivación por la izquierda, donde el primer no-terminal de la cadena actual es sustituido aleatoriamente por una de sus producciones. Un contador de pasos máximos previene bucles infinitos.</li>
+                    <li><strong>Garantía de Unicidad:</strong> Se utiliza un <code>Set</code> de JavaScript para almacenar las cadenas generadas, asegurando que no se muestren resultados repetidos.</li>
+                    <li><strong>Símbolo Vacío (ε):</strong> En algunos ejemplos, verás el símbolo 'ε'. Este representa la "cadena vacía", una producción que no genera ningún terminal, permitiendo terminar una derivación.</li>
+                </ul>
+            </article>
+        </details>
+
+        <div class="grid" style="margin-top: 1.5rem;">
+            <article>
+                <header><strong>1. Definir Gramática</strong></header>
+                <textarea id="grammarInput" placeholder="EXPRESION -> TERMINO + EXPRESION | TERMINO"></textarea>
+                <button class="secondary" onclick="clearAll()">Limpiar</button>
+            </article>
+            
+            <article>
+                <header><strong>Historial de Cadenas</strong></header>
+                <div class="history-list" id="history">
+                    <div class="empty-state">Aún no hay cadenas generadas</div>
+                </div>
+            </article>
+        </div>
+        
+        <article>
+            <header><strong>2. Generar Cadena</strong></header>
+            <button id="generationButton" onclick="generateString()">Generar Nueva Cadena</button>
+        </article>
+        
+        <div id="results-container">
+             <article>
+                <header><strong>Resultado</strong></header>
+                <div id="result-output"></div>
+             </article>
+        </div>
+
+        <article>
+            <header><strong>Explorar Ejemplos</strong></header>
+            <div class="grid">
+                <select id="exampleSelector"></select>
+                <button onclick="loadSelectedExample()">Cargar Ejemplo Seleccionado</button>
+            </div>
+        </article>
+    </main>
+    <div id="notification" class="notification"></div>
+
+    <script>
+        const grammarInputEl = document.getElementById('grammarInput');
+        const historyEl = document.getElementById('history');
+        const resultsContainerEl = document.getElementById('results-container');
+        const resultOutputEl = document.getElementById('result-output');
+        const notificationEl = document.getElementById('notification');
+        const exampleSelectorEl = document.getElementById('exampleSelector');
+
+        let generatedStrings = new Set();
+        
+        const EXAMPLES = [
+            {
+                name: "Expresiones Aritméticas",
+                grammar: `EXPRESION -> TERMINO + EXPRESION | TERMINO
+TERMINO -> FACTOR * TERMINO | FACTOR
+FACTOR -> ( EXPRESION ) | a | b | c`
+            },
+            {
+                name: "Palíndromos (a, b)",
+                grammar: `S -> a S a | b S b | a | b | ε`
+            },
+            {
+                name: "Lenguaje a^n b^n",
+                grammar: `S -> a S b | ab`
+            },
+            {
+                name: "Estructura de Haikus",
+                grammar: `HAIKU -> L5 NL L7 NL L5
+L5 -> SILABA SILABA SILABA SILABA SILABA
+L7 -> SILABA SILABA SILABA SILABA SILABA SILABA SILABA
+SILABA -> CONSONANTE VOCAL
+CONSONANTE -> b | k | m | p | s | t | r
+VOCAL -> a | e | i | o | u
+NL -> \\n`
+            }
+        ];
+
+        function showNotification(message, duration = 3000) {
+            notificationEl.textContent = message;
+            notificationEl.classList.add('show');
+            setTimeout(() => {
+                notificationEl.classList.remove('show');
+            }, duration);
+        }
+
+        function loadExample() {
+            grammarInputEl.value = EXAMPLES[0].grammar;
+        }
+
+        function populateExamples() {
+            EXAMPLES.forEach((example, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = example.name;
+                exampleSelectorEl.appendChild(option);
+            });
+        }
+
+        function loadSelectedExample() {
+            const selectedIndex = exampleSelectorEl.value;
+            if (EXAMPLES[selectedIndex]) {
+                clearAll();
+                grammarInputEl.value = EXAMPLES[selectedIndex].grammar;
+                showNotification(`Ejemplo "${EXAMPLES[selectedIndex].name}" cargado.`);
+            }
+        }
+
+        function clearAll() {
+            grammarInputEl.value = '';
+            resultOutputEl.innerHTML = '';
+            resultsContainerEl.classList.remove('visible');
+            historyEl.innerHTML = '<div class="empty-state">Aún no hay cadenas generadas</div>';
+            generatedStrings.clear();
+        }
+
+        function parseGrammar(input) {
+            const grammar = {};
+            const lines = input.trim().split('\n');
+            let firstNonTerminal = null;
+
+            for (const line of lines) {
+                const parts = line.split('->');
+                if (parts.length !== 2) continue;
+
+                const nonTerminal = parts[0].trim();
+                if (!nonTerminal) continue;
+                if (!firstNonTerminal) firstNonTerminal = nonTerminal;
+
+                const productions = parts[1].split('|').map(p => p.trim());
+                grammar[nonTerminal] = productions;
+            }
+            
+            const nonTerminalsRegex = new RegExp(Object.keys(grammar).join('|'), 'g');
+            return { grammar, startSymbol: firstNonTerminal, nonTerminalsRegex };
+        }
+
+        function generateFrom(grammarDef) {
+            if (!grammarDef.startSymbol) {
+                showNotification('Error: La gramática es inválida o está vacía.');
+                return null;
+            }
+
+            let currentString = grammarDef.startSymbol;
+            const derivation = [currentString];
+            const maxSteps = 50;
+
+            for (let i = 0; i < maxSteps; i++) {
+                const nonTerminalsInString = currentString.match(grammarDef.nonTerminalsRegex);
+                if (!nonTerminalsInString) break; 
+
+                const toReplace = nonTerminalsInString[0]; 
+                const productions = grammarDef.grammar[toReplace];
+                const replacement = productions[Math.floor(Math.random() * productions.length)];
+                
+                currentString = currentString.replace(toReplace, replacement);
+                derivation.push(currentString);
+            }
+            
+            // Limpieza final: eliminar no-terminales, épsilon y espacios
+            let finalString = currentString
+                .replace(grammarDef.nonTerminalsRegex, '')
+                .replace(/ε/g, '') // Elimina el símbolo épsilon
+                .replace(/\s+/g, '');
+
+            // Manejar el caracter de nueva linea para el Haiku
+            finalString = finalString.replace(/\\n/g, '\n');
+
+            if (finalString !== currentString) {
+                derivation.push(`${finalString} (limpieza final)`);
+            }
+
+            return { string: finalString, derivation };
+        }
+
+        function generateString() {
+            const grammarDef = parseGrammar(grammarInputEl.value);
+            if (!grammarDef.grammar || Object.keys(grammarDef.grammar).length === 0) {
+                 showNotification('Por favor, define una gramática válida.');
+                 return;
+            }
+
+            let result;
+            let attempts = 0;
+            const maxAttempts = 100;
+
+            do {
+                result = generateFrom(grammarDef);
+                if (!result) return;
+                attempts++;
+                if (attempts > maxAttempts) {
+                    showNotification('No se pudo generar una cadena única. Inténtalo de nuevo.');
+                    return;
+                }
+            } while (generatedStrings.has(result.string));
+
+            generatedStrings.add(result.string);
+            displayResult(result);
+            updateHistory(result.string);
+        }
+
+        function displayResult({ string, derivation }) {
+            const derivationHtml = derivation.map((step, index) => {
+                // Reemplaza saltos de línea reales con su representación textual para la derivación
+                const sanitizedStep = step.replace(/\n/g, '\\n');
+                return index === 0 ? sanitizedStep : `⇒ ${sanitizedStep}`;
+            }).join('\n');
+            
+            resultOutputEl.innerHTML = `
+                <h4 class="result-string">${string || '(cadena vacía)'}</h4>
+                <strong>Derivación:</strong>
+                <div class="derivation-steps">${derivationHtml}</div>
+            `;
+            resultsContainerEl.classList.add('visible');
+        }
+
+        function updateHistory(string) {
+            if (generatedStrings.size === 1) {
+                historyEl.innerHTML = '';
+            }
+            const item = document.createElement('div');
+            item.className = 'history-item';
+            item.textContent = string || '(cadena vacía)';
+            historyEl.insertBefore(item, historyEl.firstChild);
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            loadExample();
+            populateExamples();
+        });
+    </script>
+</body>
+</html>
