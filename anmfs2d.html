@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <title>Proyector Anamórfico 2D</title>
+    <title>Proyector Anamórfico 2D Interactivo</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
     <style>
@@ -50,6 +50,9 @@
             imageWidth: 10.0,
             imageCenterY: 10.0,
             radialOffset: 0.0,
+            cylinderReflectivity: 1.0,
+            cylinderRoughness: 0.0,
+            envMapIntensity: 3.0,
             exportPNG: () => exportPNG(),
         };
 
@@ -109,23 +112,43 @@
         function init() {
             const container = document.getElementById('canvas-container');
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0xffffff);
+            scene.background = new THREE.Color(0xf0f0f0);
 
             camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
             camera.position.set(0, 45, 0);
 
-            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer = new THREE.WebGLRenderer({ 
+                antialias: true, 
+                alpha: false,
+                powerPreference: "high-performance",
+                precision: "highp"
+            });
             renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
+            renderer.toneMapping = THREE.NoToneMapping;
+            renderer.toneMappingExposure = 1.0;
+            renderer.outputColorSpace = THREE.SRGBColorSpace;
             container.appendChild(renderer.domElement);
             
-            const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
+            const ambientLight = new THREE.AmbientLight(0xffffff, 2.0);
             scene.add(ambientLight);
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
-            directionalLight.position.set(5, 10, 7.5);
-            scene.add(directionalLight);
+            
+            const directionalLight1 = new THREE.DirectionalLight(0xffffff, 3.0);
+            directionalLight1.position.set(200, 300, 200);
+            scene.add(directionalLight1);
+            
+            const directionalLight2 = new THREE.DirectionalLight(0xffffff, 2.0);
+            directionalLight2.position.set(-200, 300, -200);
+            scene.add(directionalLight2);
+            
+            const directionalLight3 = new THREE.DirectionalLight(0xffffff, 2.0);
+            directionalLight3.position.set(0, 300, 0);
+            scene.add(directionalLight3);
 
             controls = new OrbitControls(camera, renderer.domElement);
             controls.target.set(0, 0, 0);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.03;
 
             setupSceneObjects();
             setupGUI();
@@ -145,7 +168,21 @@
             gui.add(params, 'imageHeight', 1.0, 20.0, 0.1).name('Altura Virtual (cm)').onChange(updateShaderUniforms);
             gui.add(params, 'imageCenterY', 1.0, 25.0, 0.1).name('Posición Y Virtual (cm)').onChange(updateShaderUniforms);
             gui.add(params, 'radialOffset', 0.0, 20.0, 0.1).name('Offset Radial (cm)').onChange(updateShaderUniforms);
+            
+            const reflectionFolder = gui.addFolder('Controles de Reflectividad');
+            reflectionFolder.add(params, 'cylinderReflectivity', 0.0, 1.0, 0.01)
+                .name('Reflectividad')
+                .onChange(updateCylinderMaterial);
+            reflectionFolder.add(params, 'cylinderRoughness', 0.0, 0.3, 0.001)
+                .name('Rugosidad')
+                .onChange(updateCylinderMaterial);
+            reflectionFolder.add(params, 'envMapIntensity', 0.5, 5.0, 0.1)
+                .name('Intensidad Reflejo')
+                .onChange(updateCylinderMaterial);
+            
             gui.add(params, 'exportPNG').name('Exportar a PNG');
+            
+            reflectionFolder.open();
         }
         
         function handleImageUpload(event) {
@@ -170,10 +207,9 @@
         }
         
         function setupSceneObjects() {
-            const gridHelper = new THREE.GridHelper(100, 100); // Larger grid
+            const gridHelper = new THREE.GridHelper(100, 100);
             scene.add(gridHelper);
 
-            // --- FIXED: Increased plane size to prevent cutoff ---
             const planeSize = 80; 
             const planeGeometry = new THREE.PlaneGeometry(planeSize, planeSize);
             
@@ -199,19 +235,92 @@
             anamorphicPlane.position.y = 0.01;
             scene.add(anamorphicPlane);
             
-            const cubeRenderTarget = new THREE.WebGLCubeRenderTarget(1024);
-            cubeCamera = new THREE.CubeCamera(0.1, 1000, cubeRenderTarget);
+            const resolution = 2048;
+            const cubeRenderTarget = new THREE.WebGLCubeRenderTarget(resolution, {
+                format: THREE.RGBAFormat,
+                type: THREE.FloatType,
+                generateMipmaps: false,
+                minFilter: THREE.LinearFilter,
+                magFilter: THREE.LinearFilter,
+                wrapS: THREE.ClampToEdgeWrap,
+                wrapT: THREE.ClampToEdgeWrap,
+                anisotropy: renderer.capabilities.getMaxAnisotropy()
+            });
+
+            cubeCamera = new THREE.CubeCamera(0.01, 3000, cubeRenderTarget);
 
             const cylinderHeight = 30;
-            const cylinderGeometry = new THREE.CylinderGeometry(params.cylinderRadius, params.cylinderRadius, cylinderHeight, 64);
-            const cylinderMaterial = new THREE.MeshStandardMaterial({
-                color: 0xffffff, metalness: 1.0, roughness: 0.05, envMap: cubeRenderTarget.texture
+            const cylinderGeometry = new THREE.CylinderGeometry(
+                params.cylinderRadius, 
+                params.cylinderRadius, 
+                cylinderHeight, 
+                512
+            );
+
+            const cylinderMaterial = new THREE.ShaderMaterial({
+                uniforms: {
+                    envMap: { value: cubeRenderTarget.texture },
+                    reflectionIntensity: { value: params.envMapIntensity },
+                    fresnelPower: { value: 0.0 },
+                    mirrorColor: { value: new THREE.Color(0xffffff) }
+                },
+                vertexShader: `
+                    varying vec3 vWorldPosition;
+                    varying vec3 vWorldNormal;
+                    varying vec3 vReflect;
+                    
+                    void main() {
+                        vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+                        vWorldPosition = worldPosition.xyz;
+                        
+                        vWorldNormal = normalize(normalMatrix * normal);
+                        
+                        vec3 worldNormal = normalize((modelMatrix * vec4(normal, 0.0)).xyz);
+                        vec3 cameraToVertex = normalize(vWorldPosition - cameraPosition);
+                        vReflect = reflect(cameraToVertex, worldNormal);
+                        
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    uniform samplerCube envMap;
+                    uniform float reflectionIntensity;
+                    uniform float fresnelPower;
+                    uniform vec3 mirrorColor;
+                    
+                    varying vec3 vWorldPosition;
+                    varying vec3 vWorldNormal;
+                    varying vec3 vReflect;
+                    
+                    void main() {
+                        vec4 reflectedColor = textureCube(envMap, vReflect);
+                        vec3 finalColor = reflectedColor.rgb * mirrorColor * reflectionIntensity;
+                        gl_FragColor = vec4(finalColor, 1.0);
+                    }
+                `,
+                side: THREE.DoubleSide
             });
 
             reflectiveCylinder = new THREE.Mesh(cylinderGeometry, cylinderMaterial);
             reflectiveCylinder.position.y = cylinderHeight / 2;
+            reflectiveCylinder.castShadow = false;
+            reflectiveCylinder.receiveShadow = false;
             reflectiveCylinder.add(cubeCamera);
             scene.add(reflectiveCylinder);
+
+            updateCylinderMaterial();
+        }
+
+        function updateCylinderMaterial() {
+            if (!reflectiveCylinder) return;
+            
+            const material = reflectiveCylinder.material;
+            if (material.uniforms) {
+                material.uniforms.reflectionIntensity.value = params.envMapIntensity;
+                material.uniforms.fresnelPower.value = params.cylinderRoughness * 5.0;
+                const brightness = params.cylinderReflectivity;
+                material.uniforms.mirrorColor.value.setScalar(brightness);
+            }
         }
         
         function updateShaderUniforms() {
@@ -225,7 +334,7 @@
             }
             if (reflectiveCylinder) {
                 reflectiveCylinder.geometry.dispose();
-                reflectiveCylinder.geometry = new THREE.CylinderGeometry(params.cylinderRadius, params.cylinderRadius, 30, 64);
+                reflectiveCylinder.geometry = new THREE.CylinderGeometry(params.cylinderRadius, params.cylinderRadius, 30, 512);
             }
         }
         
@@ -236,7 +345,6 @@
             }
 
             const resolution = 4096;
-            // --- FIXED: Use the same larger plane size for export ---
             const planeSize = 80;
             const scale = resolution / planeSize;
             const img = sourceTexture.image;
@@ -298,7 +406,10 @@
 
             if (cubeCamera && reflectiveCylinder) {
                 reflectiveCylinder.visible = false;
+                const oldPixelRatio = renderer.getPixelRatio();
+                renderer.setPixelRatio(2.0);
                 cubeCamera.update(renderer, scene);
+                renderer.setPixelRatio(oldPixelRatio);
                 reflectiveCylinder.visible = true;
             }
             
