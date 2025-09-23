@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <title>Proyector Anamórfico Interactivo</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <style>
+        body {
+            font-family: monospace;
+            margin: 0;
+            background-color: #f0f0f0;
+            color: #333;
+            overflow: hidden;
+        }
+        #container {
+            width: 100vw;
+            height: 100vh;
+        }
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 100;
+        }
+        .custom-file-upload {
+            border: 1px solid #0077cc;
+            display: inline-block;
+            padding: 10px 20px;
+            cursor: pointer;
+            background-color: #0088ee;
+            color: white;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        .custom-file-upload:hover {
+            background-color: #0099ff;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        #status-text {
+            margin-top: 8px;
+            color: #555;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+    <div id="info">
+        <label for="file-input" class="custom-file-upload">Cargar Modelo 3D</label>
+        <input id="file-input" type="file" accept=".stl,.obj,.glb,.gltf">
+        <p id="status-text">Selecciona un archivo 3D para comenzar.</p>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.164.1/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.164.1/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { STLLoader } from 'three/addons/loaders/STLLoader.js';
+        import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { STLExporter } from 'three/addons/exporters/STLExporter.js';
+        import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
+
+        let scene, camera, renderer, controls;
+        let anamorphicMesh, virtualMesh, originalVertices;
+        let cubeCamera, reflectiveCylinder;
+        
+        const objLoader = new OBJLoader();
+        const stlLoader = new STLLoader();
+        const gltfLoader = new GLTFLoader();
+
+        const params = {
+            model: 'Ninguno',
+            cylinderRadius: 30,
+            viewerDistance: 150,
+            viewerHeight: 20,
+            objScale: 8,
+            objRotationY: 0,
+            objPosX: 0,
+            objPosY: 15,
+            objPosZ: -92,
+            autoRotate: false,
+            showVirtualObject: true,
+            showAnamorphicObject: true,
+            exportSTL: () => exportSTL(),
+        };
+
+        init();
+        animate();
+
+        function init() {
+            const container = document.getElementById('container');
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xffffff);
+
+            camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 2000);
+            // --- NEW DEFAULT CAMERA POSITION ---
+            camera.position.set(-29.28, 175.54, -113.48);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+            
+            const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x888888, 1.5);
+            scene.add(hemisphereLight);
+            const pointLight = new THREE.PointLight(0xffffff, 1.5);
+            camera.add(pointLight);
+            scene.add(camera);
+
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            // --- NEW DEFAULT CAMERA TARGET ---
+            controls.target.set(0, 0, 0);
+
+            setupSceneGuides();
+            setupGUI();
+
+            document.getElementById('file-input').addEventListener('change', handleFileSelect);
+            window.addEventListener('resize', onWindowResize, false);
+        }
+        
+        function loadModelByUrl(url) {
+            const statusText = document.getElementById('status-text');
+            if (!url || url === 'Ninguno') {
+                if (anamorphicMesh) scene.remove(anamorphicMesh);
+                if (virtualMesh) scene.remove(virtualMesh);
+                anamorphicMesh = null;
+                virtualMesh = null;
+                statusText.textContent = `Selecciona un archivo 3D para comenzar.`;
+                return;
+            }
+            
+            statusText.textContent = `Cargando ${url}...`;
+            objLoader.load(url, 
+                (object) => {
+                    processLoadedObject(object, url.split('/').pop());
+                },
+                undefined,
+                (error) => {
+                    console.error('Error al cargar el modelo:', error);
+                    statusText.textContent = `Error al cargar ${url}. Asegúrate que el archivo existe en la misma carpeta.`;
+                }
+            );
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const filename = file.name.toLowerCase();
+            const reader = new FileReader();
+            const statusText = document.getElementById('status-text');
+
+            reader.onload = (e) => {
+                const contents = e.target.result;
+                statusText.textContent = `Procesando ${file.name}...`;
+                try {
+                    if (filename.endsWith('.obj')) {
+                        processLoadedObject(objLoader.parse(contents), file.name);
+                    } else if (filename.endsWith('.stl')) {
+                        processLoadedGeometry(stlLoader.parse(contents), file.name);
+                    } else if (filename.endsWith('.glb') || filename.endsWith('.gltf')) {
+                        gltfLoader.parse(contents, '', (gltf) => processLoadedObject(gltf.scene, file.name));
+                    }
+                } catch (error) {
+                    statusText.textContent = `Error al cargar ${file.name}.`;
+                    console.error(error);
+                }
+            };
+
+            if (filename.endsWith('.obj')) {
+                reader.readAsText(file);
+            } else {
+                reader.readAsArrayBuffer(file);
+            }
+        }
+
+        function processLoadedObject(object, filename) {
+            let geometry = null;
+            object.traverse(child => { if (child.isMesh && !geometry) geometry = child.geometry; });
+            if (geometry) processLoadedGeometry(geometry, filename);
+            else alert('No se pudo encontrar una malla válida en el archivo.');
+        }
+
+        function processLoadedGeometry(geometry, filename) {
+            if (anamorphicMesh) scene.remove(anamorphicMesh);
+            if (virtualMesh) scene.remove(virtualMesh);
+            
+            geometry.center();
+            originalVertices = new Float32Array(geometry.attributes.position.array);
+
+            const virtualMaterial = new THREE.MeshBasicMaterial({ color: 0x888888, transparent: true, opacity: 0.3, wireframe: true });
+            virtualMesh = new THREE.Mesh(geometry, virtualMaterial);
+            scene.add(virtualMesh);
+            
+            const anamorphMaterial = new THREE.MeshStandardMaterial({ color: 0x0077cc, metalness: 0.3, roughness: 0.4 });
+            anamorphicMesh = new THREE.Mesh(geometry.clone(), anamorphMaterial);
+            scene.add(anamorphicMesh);
+            
+            updateVirtualMeshTransform();
+            document.getElementById('status-text').textContent = `Cargado: ${filename}`;
+        }
+
+        function updateVirtualMeshTransform() {
+            if (!virtualMesh) return;
+            virtualMesh.scale.setScalar(params.objScale);
+            virtualMesh.rotation.y = params.objRotationY;
+            virtualMesh.position.set(params.objPosX, params.objPosY, params.objPosZ);
+            applyAnamorphicProjection();
+        }
+
+        function setupSceneGuides() {
+            const axesHelper = new THREE.AxesHelper(100);
+            axesHelper.position.y = 0.1;
+            scene.add(axesHelper);
+            
+            const gridHelper = new THREE.GridHelper(500, 50, 0x888888, 0xcccccc);
+            scene.add(gridHelper);
+            
+            const resolution = 1024;
+            const cubeRenderTarget = new THREE.WebGLCubeRenderTarget(resolution);
+            
+            cubeRenderTarget.texture.magFilter = THREE.NearestFilter;
+            cubeRenderTarget.texture.minFilter = THREE.NearestFilter;
+            
+            cubeCamera = new THREE.CubeCamera(1, 2000, cubeRenderTarget);
+
+            const cylinderHeight = 200;
+            const cylinderGeometry = new THREE.CylinderGeometry(params.cylinderRadius, params.cylinderRadius, cylinderHeight, 128);
+            const cylinderMaterial = new THREE.MeshStandardMaterial({
+                color: 0xffffff, metalness: 1.0, roughness: 0.05, envMap: cubeRenderTarget.texture
+            });
+
+            reflectiveCylinder = new THREE.Mesh(cylinderGeometry, cylinderMaterial);
+            reflectiveCylinder.position.y = cylinderHeight / 2;
+            reflectiveCylinder.add(cubeCamera);
+            scene.add(reflectiveCylinder);
+        }
+        
+        function setupGUI() {
+            const gui = new GUI({ autoPlace: false });
+            document.getElementById('container').appendChild(gui.domElement);
+            gui.domElement.style.position = 'absolute';
+            gui.domElement.style.top = '0px';
+            gui.domElement.style.right = '0px';
+            
+            gui.add(params, 'model', ['Ninguno', 'teapot.obj', 'cat.obj']).name('Modelo Pre-cargado').onChange(loadModelByUrl);
+
+            const visibilityFolder = gui.addFolder('Visibilidad');
+            visibilityFolder.add(params, 'showVirtualObject').name('Mostrar Guía Virtual');
+            visibilityFolder.add(params, 'showAnamorphicObject').name('Mostrar Modelo Anamórfico');
+            
+            const anamorphFolder = gui.addFolder('Controles de Anamorfosis');
+            anamorphFolder.add(params, 'cylinderRadius', 10, 200).name('Radio Cilindro (cm)').onChange(applyAnamorphicProjection);
+            anamorphFolder.add(params, 'viewerDistance', 50, 1000).name('Distancia Espectador (cm)').onChange(applyAnamorphicProjection);
+            anamorphFolder.add(params, 'viewerHeight', 20, 500).name('Altura Espectador (cm)').onChange(applyAnamorphicProjection);
+            
+            const virtualFolder = gui.addFolder('Controles del Objeto Virtual');
+            virtualFolder.add(params, 'objScale', 1, 300).name('Escala').onChange(updateVirtualMeshTransform);
+            virtualFolder.add(params, 'objRotationY', -Math.PI, Math.PI).name('Rotación Y').onChange(updateVirtualMeshTransform);
+            virtualFolder.add(params, 'objPosX', -400, 400).name('Posición X (cm)').onChange(updateVirtualMeshTransform);
+            virtualFolder.add(params, 'objPosY', 0, 400).name('Posición Y (cm)').onChange(updateVirtualMeshTransform);
+            virtualFolder.add(params, 'objPosZ', -400, 400).name('Posición Z (cm)').onChange(updateVirtualMeshTransform);
+            virtualFolder.add(params, 'autoRotate').name('Rotación Automática Y');
+            
+            gui.add(params, 'exportSTL').name('Exportar Anamorfosis a STL');
+            
+            visibilityFolder.open();
+            anamorphFolder.open();
+            virtualFolder.open();
+        }
+
+        function applyAnamorphicProjection() {
+            if (!anamorphicMesh || !originalVertices || !virtualMesh) return;
+            
+            virtualMesh.updateMatrixWorld(true);
+
+            const R = params.cylinderRadius;
+            const viewerPos = new THREE.Vector3(0, params.viewerHeight, params.viewerDistance + R);
+            const newPositions = new Float32Array(originalVertices.length);
+            const viewerPos_xz = new THREE.Vector2(viewerPos.x, viewerPos.z);
+            const tempBaseVertex = new THREE.Vector3();
+
+            for (let i = 0; i < originalVertices.length; i += 3) {
+                tempBaseVertex.fromArray(originalVertices, i);
+                const P_virtual = tempBaseVertex.clone().applyMatrix4(virtualMesh.matrixWorld);
+                const P_virtual_xz = new THREE.Vector2(P_virtual.x, P_virtual.z);
+                const V_xz = new THREE.Vector2().subVectors(P_virtual_xz, viewerPos_xz);
+                const a = V_xz.dot(V_xz), b = 2 * viewerPos_xz.dot(V_xz), c = viewerPos_xz.dot(viewerPos_xz) - R * R;
+                const delta = b * b - 4 * a * c;
+
+                if (delta >= 0) {
+                    const t = (-b - Math.sqrt(delta)) / (2 * a);
+                    const M_xz = new THREE.Vector2().copy(viewerPos_xz).addScaledVector(V_xz, t);
+                    const vec_PC_xz = new THREE.Vector2().subVectors(M_xz, P_virtual_xz);
+                    const angle_C = Math.atan2(M_xz.y, M_xz.x), angle_PC = Math.atan2(vec_PC_xz.y, vec_PC_xz.x);
+                    const totalRotation = 2 * (angle_C - angle_PC);
+                    const vec_CP_xz = vec_PC_xz.clone().negate();
+                    vec_CP_xz.rotateAround(new THREE.Vector2(0, 0), totalRotation);
+                    const P_new_xz = new THREE.Vector2().addVectors(M_xz, vec_CP_xz);
+                    newPositions[i] = P_new_xz.x;
+                    newPositions[i+1] = P_virtual.y;
+                    newPositions[i+2] = P_new_xz.y;
+                } else {
+                    newPositions[i] = P_virtual.x;
+                    newPositions[i+1] = P_virtual.y;
+                    newPositions[i+2] = P_virtual.z;
+                }
+            }
+
+            anamorphicMesh.geometry.attributes.position.array.set(newPositions);
+            anamorphicMesh.geometry.attributes.position.needsUpdate = true;
+            anamorphicMesh.geometry.computeVertexNormals();
+            
+            if (reflectiveCylinder && (reflectiveCylinder.geometry.parameters.radiusTop !== R)) {
+                reflectiveCylinder.geometry.dispose();
+                reflectiveCylinder.geometry = new THREE.CylinderGeometry(R, R, 200, 128);
+            }
+        }
+        
+        function exportSTL() {
+            if (!anamorphicMesh) {
+                alert("No hay ningún modelo anamórfico cargado para exportar.");
+                return;
+            }
+            const exporter = new STLExporter();
+            const result = exporter.parse(anamorphicMesh, { binary: true });
+            const blob = new Blob([result], { type: 'application/octet-stream' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'modelo_anamorfico.stl';
+            link.click();
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('container');
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            
+            if (params.autoRotate && virtualMesh) {
+                params.objRotationY += 0.01;
+                if (params.objRotationY > Math.PI) params.objRotationY -= 2 * Math.PI;
+                updateVirtualMeshTransform();
+            }
+
+            if (cubeCamera && reflectiveCylinder) {
+                if (virtualMesh) virtualMesh.visible = false;
+                if (anamorphicMesh) anamorphicMesh.visible = params.showAnamorphicObject;
+                
+                reflectiveCylinder.visible = false;
+                
+                cubeCamera.update(renderer, scene);
+                
+                reflectiveCylinder.visible = true;
+            }
+            
+            if (virtualMesh) virtualMesh.visible = params.showVirtualObject;
+            if (anamorphicMesh) anamorphicMesh.visible = params.showAnamorphicObject;
+
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>
