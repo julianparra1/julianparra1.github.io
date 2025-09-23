@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <title>Proyector Anamórfico 2D</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <style>
+        body {
+            font-family: monospace; margin: 0; background-color: #f0f0f0;
+            color: #333; overflow: hidden;
+        }
+        #canvas-container { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; }
+        #ui-container { position: absolute; top: 10px; left: 10px; z-index: 100; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px; }
+        .file-label {
+            display: block; padding: 10px 15px; cursor: pointer; background-color: #0088ee;
+            color: white; border-radius: 5px; font-family: monospace; text-align: center;
+        }
+        .file-label:hover { background-color: #0099ff; }
+        input[type="file"] { display: none; }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    <div id="ui-container">
+        <label for="file-input" class="file-label">Cargar Imagen</label>
+        <input id="file-input" type="file" accept="image/png, image/jpeg">
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.164.1/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.164.1/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
+
+        let scene, camera, renderer, controls, anamorphicPlane;
+        let reflectiveCylinder, cubeCamera, sourceTexture = null;
+        let gui, imageWidthController;
+
+        const params = {
+            cylinderRadius: 4.0,
+            imageHeight: 10.0,
+            imageWidth: 10.0,
+            imageCenterY: 10.0,
+            radialOffset: 0.0,
+            exportPNG: () => exportPNG(),
+        };
+
+        const vertexShader = `
+            varying vec2 vUv;
+            void main() {
+                vUv = uv;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `;
+
+        const fragmentShader = `
+            #define PI 3.14159265359
+
+            uniform sampler2D uTexture;
+            uniform bool uHasTexture;
+            uniform float uCylinderRadius;
+            uniform float uImageHeight;
+            uniform float uImageWidth;
+            uniform float uImageCenterY;
+            uniform float uRadialOffset;
+            uniform float uPlaneSize;
+            varying vec2 vUv;
+
+            void main() {
+                vec2 centered_uv = vUv - 0.5;
+                float r = length(centered_uv) * uPlaneSize;
+                float theta = atan(centered_uv.y, centered_uv.x);
+
+                if (!uHasTexture) {
+                    gl_FragColor = vec4(0.9, 0.9, 0.9, 1.0);
+                    return;
+                }
+
+                float theta_max = (uImageWidth / 2.0) / uCylinderRadius;
+                float img_top = uImageCenterY + uImageHeight / 2.0;
+                float img_bottom = uImageCenterY - uImageHeight / 2.0;
+
+                float r_inner = (uCylinderRadius * uCylinderRadius) / img_top + uRadialOffset;
+                float r_outer = (uCylinderRadius * uCylinderRadius) / img_bottom + uRadialOffset;
+                
+                if (r < r_inner || r > r_outer || abs(theta) > theta_max) {
+                    discard;
+                }
+
+                float effective_r = r - uRadialOffset;
+                if (effective_r <= 0.0) discard;
+
+                float perceived_y = (uCylinderRadius * uCylinderRadius) / effective_r;
+                float v = 1.0 - ((perceived_y - img_bottom) / uImageHeight);
+                float u = (theta + theta_max) / (2.0 * theta_max);
+                
+                gl_FragColor = texture2D(uTexture, vec2(u, v));
+            }
+        `;
+
+        function init() {
+            const container = document.getElementById('canvas-container');
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xffffff);
+
+            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 45, 0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            container.appendChild(renderer.domElement);
+            
+            const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
+            scene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
+            directionalLight.position.set(5, 10, 7.5);
+            scene.add(directionalLight);
+
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.target.set(0, 0, 0);
+
+            setupSceneObjects();
+            setupGUI();
+
+            document.getElementById('file-input').addEventListener('change', handleImageUpload);
+            window.addEventListener('resize', onWindowResize);
+
+            animate();
+        }
+
+        function setupGUI() {
+            gui = new GUI({ autoPlace: false });
+            document.getElementById('ui-container').appendChild(gui.domElement);
+
+            gui.add(params, 'cylinderRadius', 1.0, 10.0, 0.1).name('Radio Cilindro (cm)').onChange(updateShaderUniforms);
+            imageWidthController = gui.add(params, 'imageWidth', 1.0, 40.0, 0.1).name('Ancho Virtual (cm)').onChange(updateShaderUniforms);
+            gui.add(params, 'imageHeight', 1.0, 20.0, 0.1).name('Altura Virtual (cm)').onChange(updateShaderUniforms);
+            gui.add(params, 'imageCenterY', 1.0, 25.0, 0.1).name('Posición Y Virtual (cm)').onChange(updateShaderUniforms);
+            gui.add(params, 'radialOffset', 0.0, 20.0, 0.1).name('Offset Radial (cm)').onChange(updateShaderUniforms);
+            gui.add(params, 'exportPNG').name('Exportar a PNG');
+        }
+        
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                new THREE.TextureLoader().load(e.target.result, (texture) => {
+                    sourceTexture = texture;
+                    
+                    const aspectRatio = texture.image.width / texture.image.height;
+                    params.imageWidth = params.imageHeight * aspectRatio;
+                    imageWidthController.updateDisplay();
+                    
+                    const material = anamorphicPlane.material;
+                    material.uniforms.uTexture.value = texture;
+                    material.uniforms.uHasTexture.value = true;
+                    updateShaderUniforms();
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        function setupSceneObjects() {
+            const gridHelper = new THREE.GridHelper(100, 100); // Larger grid
+            scene.add(gridHelper);
+
+            // --- FIXED: Increased plane size to prevent cutoff ---
+            const planeSize = 80; 
+            const planeGeometry = new THREE.PlaneGeometry(planeSize, planeSize);
+            
+            const shaderMaterial = new THREE.ShaderMaterial({
+                vertexShader,
+                fragmentShader,
+                uniforms: {
+                    uTexture: { value: null },
+                    uHasTexture: { value: false },
+                    uCylinderRadius: { value: params.cylinderRadius },
+                    uImageHeight: { value: params.imageHeight },
+                    uImageWidth: { value: params.imageWidth },
+                    uImageCenterY: { value: params.imageCenterY },
+                    uRadialOffset: { value: params.radialOffset },
+                    uPlaneSize: { value: planeSize },
+                },
+                transparent: true,
+                side: THREE.DoubleSide,
+            });
+
+            anamorphicPlane = new THREE.Mesh(planeGeometry, shaderMaterial);
+            anamorphicPlane.rotation.x = -Math.PI / 2;
+            anamorphicPlane.position.y = 0.01;
+            scene.add(anamorphicPlane);
+            
+            const cubeRenderTarget = new THREE.WebGLCubeRenderTarget(1024);
+            cubeCamera = new THREE.CubeCamera(0.1, 1000, cubeRenderTarget);
+
+            const cylinderHeight = 30;
+            const cylinderGeometry = new THREE.CylinderGeometry(params.cylinderRadius, params.cylinderRadius, cylinderHeight, 64);
+            const cylinderMaterial = new THREE.MeshStandardMaterial({
+                color: 0xffffff, metalness: 1.0, roughness: 0.05, envMap: cubeRenderTarget.texture
+            });
+
+            reflectiveCylinder = new THREE.Mesh(cylinderGeometry, cylinderMaterial);
+            reflectiveCylinder.position.y = cylinderHeight / 2;
+            reflectiveCylinder.add(cubeCamera);
+            scene.add(reflectiveCylinder);
+        }
+        
+        function updateShaderUniforms() {
+            if (anamorphicPlane) {
+                const material = anamorphicPlane.material;
+                material.uniforms.uCylinderRadius.value = params.cylinderRadius;
+                material.uniforms.uImageHeight.value = params.imageHeight;
+                material.uniforms.uImageWidth.value = params.imageWidth;
+                material.uniforms.uImageCenterY.value = params.imageCenterY;
+                material.uniforms.uRadialOffset.value = params.radialOffset;
+            }
+            if (reflectiveCylinder) {
+                reflectiveCylinder.geometry.dispose();
+                reflectiveCylinder.geometry = new THREE.CylinderGeometry(params.cylinderRadius, params.cylinderRadius, 30, 64);
+            }
+        }
+        
+        function exportPNG() {
+            if (!sourceTexture) {
+                alert("Por favor, carga una imagen primero.");
+                return;
+            }
+
+            const resolution = 4096;
+            // --- FIXED: Use the same larger plane size for export ---
+            const planeSize = 80;
+            const scale = resolution / planeSize;
+            const img = sourceTexture.image;
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = resolution;
+            canvas.height = resolution;
+            const context = canvas.getContext('2d');
+            
+            context.fillStyle = "white";
+            context.fillRect(0, 0, resolution, resolution);
+            
+            const img_top = params.imageCenterY + params.imageHeight / 2.0;
+            const img_bottom = params.imageCenterY - params.imageHeight / 2.0;
+            const theta_max = (params.imageWidth / 2.0) / params.cylinderRadius;
+
+            for (let j = 0; j < resolution; j++) {
+                for (let i = 0; i < resolution; i++) {
+                    const x = (i / scale) - planeSize / 2;
+                    const y = (j / scale) - planeSize / 2;
+                    const r = Math.sqrt(x * x + y * y);
+                    const theta = Math.atan2(y, x);
+                    
+                    const r_inner = (params.cylinderRadius * params.cylinderRadius) / img_top + params.radialOffset;
+                    const r_outer = (params.cylinderRadius * params.cylinderRadius) / img_bottom + params.radialOffset;
+
+                    if (r < r_inner || r > r_outer || Math.abs(theta) > theta_max) continue;
+
+                    const effective_r = r - params.radialOffset;
+                    if (effective_r <= 0) continue;
+                    
+                    const perceived_y = (params.cylinderRadius * params.cylinderRadius) / effective_r;
+                    const v = (perceived_y - img_bottom) / params.imageHeight;
+                    const u = (theta + theta_max) / (2.0 * theta_max);
+
+                    if (u >= 0.0 && u <= 1.0 && v >= 0.0 && v <= 1.0) {
+                        const sx = u * img.width;
+                        const sy = (1.0-v) * img.height;
+                        context.drawImage(img, sx, sy, 1, 1, i, j, 1, 1);
+                    }
+                }
+            }
+            
+            const link = document.createElement('a');
+            link.download = 'anamorfosis.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+
+            if (cubeCamera && reflectiveCylinder) {
+                reflectiveCylinder.visible = false;
+                cubeCamera.update(renderer, scene);
+                reflectiveCylinder.visible = true;
+            }
+            
+            renderer.render(scene, camera);
+        }
+
+        init();
+    </script>
+</body>
+</html>
