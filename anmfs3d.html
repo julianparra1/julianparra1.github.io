@@ -96,9 +96,81 @@
             showAnamorphicObject: true,
             cylinderReflectivity: 1.0,
             cylinderRoughness: 0.0,
-            envMapIntensity: 2.0,
+            envMapIntensity: 1.0,
+            quality: 'low',
             exportSTL: () => exportSTL(),
         };
+
+        function getQualitySettings(quality) {
+            switch (quality) {
+                case 'low':
+                    return {
+                        pixelRatio: 1,
+                        cubeMapResolution: 512,
+                        cylinderSegments: 128
+                    };
+                case 'medium':
+                    return {
+                        pixelRatio: Math.min(window.devicePixelRatio, 2),
+                        cubeMapResolution: 1024,
+                        cylinderSegments: 256
+                    };
+                case 'high':
+                    return {
+                        pixelRatio: Math.min(window.devicePixelRatio, 3),
+                        cubeMapResolution: 2048,
+                        cylinderSegments: 512
+                    };
+                default:
+                    return getQualitySettings('low');
+            }
+        }
+
+        function updateQuality() {
+            const settings = getQualitySettings(params.quality);
+            
+            // Update renderer pixel ratio
+            renderer.setPixelRatio(settings.pixelRatio);
+            
+            // Update cylinder geometry
+            if (reflectiveCylinder) {
+                const cylinderHeight = 200;
+                reflectiveCylinder.geometry.dispose();
+                reflectiveCylinder.geometry = new THREE.CylinderGeometry(
+                    params.cylinderRadius, 
+                    params.cylinderRadius, 
+                    cylinderHeight, 
+                    settings.cylinderSegments, 
+                    1,
+                    false,
+                    0,
+                    Math.PI * 2
+                );
+            }
+            
+            // Update cube camera resolution
+            if (cubeCamera) {
+                const newRenderTarget = new THREE.WebGLCubeRenderTarget(settings.cubeMapResolution, {
+                    format: THREE.RGBAFormat,
+                    type: THREE.FloatType,
+                    generateMipmaps: false,
+                    minFilter: THREE.LinearFilter,
+                    magFilter: THREE.LinearFilter,
+                    wrapS: THREE.ClampToEdgeWrap,
+                    wrapT: THREE.ClampToEdgeWrap,
+                    anisotropy: renderer.capabilities.getMaxAnisotropy()
+                });
+                
+                // Update cube camera
+                cubeCamera.renderTarget.dispose();
+                cubeCamera.renderTarget = newRenderTarget;
+                
+                // Update cylinder material
+                if (reflectiveCylinder && reflectiveCylinder.material.uniforms) {
+                    reflectiveCylinder.material.uniforms.envMap.value = newRenderTarget.texture;
+                }
+            }
+        }
 
         init();
         animate();
@@ -111,6 +183,8 @@
             camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 2000);
             camera.position.set(-29.28, 175.54, -113.48);
 
+            const qualitySettings = getQualitySettings(params.quality);
+
             renderer = new THREE.WebGLRenderer({ 
                 antialias: true, 
                 alpha: false,
@@ -118,7 +192,7 @@
                 precision: "highp"
             });
             renderer.setSize(container.clientWidth, container.clientHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
+            renderer.setPixelRatio(qualitySettings.pixelRatio);
             renderer.toneMapping = THREE.NoToneMapping;
             renderer.toneMappingExposure = 1.0;
             renderer.shadowMap.enabled = false;
@@ -260,8 +334,8 @@
             const gridHelper = new THREE.GridHelper(500, 50, 0x888888, 0xcccccc);
             scene.add(gridHelper);
             
-            const resolution = 2048;
-            const cubeRenderTarget = new THREE.WebGLCubeRenderTarget(resolution, {
+            const qualitySettings = getQualitySettings(params.quality);
+            const cubeRenderTarget = new THREE.WebGLCubeRenderTarget(qualitySettings.cubeMapResolution, {
                 format: THREE.RGBAFormat,
                 type: THREE.FloatType,
                 generateMipmaps: false,
@@ -279,7 +353,7 @@
                 params.cylinderRadius, 
                 params.cylinderRadius, 
                 cylinderHeight, 
-                512, 
+                qualitySettings.cylinderSegments, 
                 1,
                 false,
                 0,
@@ -359,6 +433,7 @@
             gui.domElement.style.top = '0px';
             gui.domElement.style.right = '0px';
             
+            gui.add(params, 'quality', ['low', 'medium', 'high']).name('Calidad de Renderizado').onChange(updateQuality);
             gui.add(params, 'model', ['Ninguno', 'teapot.obj', 'cat.obj']).name('Modelo Pre-cargado').onChange(loadModelByUrl);
 
             const visibilityFolder = gui.addFolder('Visibilidad');
@@ -441,8 +516,14 @@
             
             if (reflectiveCylinder && (reflectiveCylinder.geometry.parameters.radiusTop !== R)) {
                 const cylinderHeight = 200;
+                const qualitySettings = getQualitySettings(params.quality);
                 reflectiveCylinder.geometry.dispose();
-                reflectiveCylinder.geometry = new THREE.CylinderGeometry(R, R, cylinderHeight, 512);
+                reflectiveCylinder.geometry = new THREE.CylinderGeometry(
+                    R, 
+                    R, 
+                    cylinderHeight, 
+                    qualitySettings.cylinderSegments
+                );
             }
         }
         
