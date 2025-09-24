@@ -434,44 +434,124 @@
             canvas.height = resolution;
             const context = canvas.getContext('2d');
             
-            context.fillStyle = "white";
-            context.fillRect(0, 0, resolution, resolution);
+            // Fill with transparent background initially
+            context.clearRect(0, 0, resolution, resolution);
+            
+            // Create image data for efficient pixel manipulation
+            const imageData = context.getImageData(0, 0, resolution, resolution);
+            const data = imageData.data;
+            
+            // Create a temporary canvas to get source image pixels
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = img.width;
+            tempCanvas.height = img.height;
+            const tempContext = tempCanvas.getContext('2d');
+            tempContext.drawImage(img, 0, 0);
+            const sourceData = tempContext.getImageData(0, 0, img.width, img.height).data;
             
             const img_top = params.imageCenterY + params.imageHeight / 2.0;
             const img_bottom = params.imageCenterY - params.imageHeight / 2.0;
             const theta_max = (params.imageWidth / 2.0) / params.cylinderRadius;
 
-            for (let j = 0; j < resolution; j++) {
-                for (let i = 0; i < resolution; i++) {
-                    const x = (i / scale) - planeSize / 2;
-                    const y = (j / scale) - planeSize / 2;
-                    const r = Math.sqrt(x * x + y * y);
-                    const theta = Math.atan2(y, x);
+            let minX = resolution, maxX = 0, minY = resolution, maxY = 0;
+            let hasContent = false;
+
+            let processedRows = 0;
+            const chunkSize = 10;
+            
+            function processChunk() {
+                const endRow = Math.min(processedRows + chunkSize, resolution);
+                
+                for (let j = processedRows; j < endRow; j++) {
+                    for (let i = 0; i < resolution; i++) {
+                        const x = (i / scale) - planeSize / 2;
+                        const y = (j / scale) - planeSize / 2;
+                        const r = Math.sqrt(x * x + y * y);
+                        const theta = Math.atan2(y, x);
+                        
+                        const r_inner = (params.cylinderRadius * params.cylinderRadius) / img_top + params.radialOffset;
+                        const r_outer = (params.cylinderRadius * params.cylinderRadius) / img_bottom + params.radialOffset;
+
+                        if (r >= r_inner && r <= r_outer && Math.abs(theta) <= theta_max) {
+                            const effective_r = r - params.radialOffset;
+                            if (effective_r > 0) {
+                                const perceived_y = (params.cylinderRadius * params.cylinderRadius) / effective_r;
+                                const v = (perceived_y - img_bottom) / params.imageHeight;
+                                const u = (theta + theta_max) / (2.0 * theta_max);
+
+                                if (u >= 0.0 && u <= 1.0 && v >= 0.0 && v <= 1.0) {
+                                    const sx = Math.floor(u * (img.width - 1));
+                                    const sy = Math.floor(v * (img.height - 1));
+                                    
+                                    const sourceIndex = (sy * img.width + sx) * 4;
+                                    const targetIndex = (j * resolution + i) * 4;
+                                    
+                                    data[targetIndex] = sourceData[sourceIndex];     // R
+                                    data[targetIndex + 1] = sourceData[sourceIndex + 1]; // G
+                                    data[targetIndex + 2] = sourceData[sourceIndex + 2]; // B
+                                    data[targetIndex + 3] = 255; // A
+                                    
+                                    // Track bounds for cropping
+                                    minX = Math.min(minX, i);
+                                    maxX = Math.max(maxX, i);
+                                    minY = Math.min(minY, j);
+                                    maxY = Math.max(maxY, j);
+                                    hasContent = true;
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                processedRows = endRow;
+                
+                if (processedRows < resolution) {
+                    // Continue processing in the next frame
+                    requestAnimationFrame(processChunk);
+                } else {
+                    // Finished processing, now crop and download
+                    context.putImageData(imageData, 0, 0);
                     
-                    const r_inner = (params.cylinderRadius * params.cylinderRadius) / img_top + params.radialOffset;
-                    const r_outer = (params.cylinderRadius * params.cylinderRadius) / img_bottom + params.radialOffset;
-
-                    if (r < r_inner || r > r_outer || Math.abs(theta) > theta_max) continue;
-
-                    const effective_r = r - params.radialOffset;
-                    if (effective_r <= 0) continue;
-                    
-                    const perceived_y = (params.cylinderRadius * params.cylinderRadius) / effective_r;
-                    const v = (perceived_y - img_bottom) / params.imageHeight;
-                    const u = (theta + theta_max) / (2.0 * theta_max);
-
-                    if (u >= 0.0 && u <= 1.0 && v >= 0.0 && v <= 1.0) {
-                        const sx = u * img.width;
-                        const sy = (1.0-v) * img.height;
-                        context.drawImage(img, sx, sy, 1, 1, i, j, 1, 1);
+                    if (hasContent) {
+                        // Add small padding around the content
+                        const padding = Math.max(10, Math.floor(resolution * 0.01));
+                        minX = Math.max(0, minX - padding);
+                        maxX = Math.min(resolution - 1, maxX + padding);
+                        minY = Math.max(0, minY - padding);
+                        maxY = Math.min(resolution - 1, maxY + padding);
+                        
+                        const cropWidth = maxX - minX + 1;
+                        const cropHeight = maxY - minY + 1;
+                        
+                        // Create cropped canvas
+                        const croppedCanvas = document.createElement('canvas');
+                        croppedCanvas.width = cropWidth;
+                        croppedCanvas.height = cropHeight;
+                        const croppedContext = croppedCanvas.getContext('2d');
+                        
+                        // Fill with white background
+                        croppedContext.fillStyle = "white";
+                        croppedContext.fillRect(0, 0, cropWidth, cropHeight);
+                        
+                        // Copy cropped area
+                        croppedContext.drawImage(
+                            canvas,
+                            minX, minY, cropWidth, cropHeight,
+                            0, 0, cropWidth, cropHeight
+                        );
+                        
+                        // Download cropped version
+                        const link = document.createElement('a');
+                        link.download = 'anamorfosis_cropped.png';
+                        link.href = croppedCanvas.toDataURL('image/png');
+                        link.click();
+                    } else {
+                        alert("No se encontró contenido para exportar.");
                     }
                 }
             }
             
-            const link = document.createElement('a');
-            link.download = 'anamorfosis.png';
-            link.href = canvas.toDataURL('image/png');
-            link.click();
+            processChunk();
         }
 
         function onWindowResize() {
