@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Estudio de Teselados</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --bg-color: #080808;
+            --panel-bg: rgba(20, 20, 20, 0.85);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --text-main: #e0e0e0;
+            --text-muted: #888;
+            --accent: #fff;
+            --highlight: #3b82f6;
+            --guide-color: rgba(255, 255, 255, 0.15);
+            --region-color: rgba(59, 130, 246, 0.1);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; outline: none; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .main-layout {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* --- Sidebar --- */
+        .sidebar {
+            width: 340px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            z-index: 20;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .sidebar-header h1 {
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .scroll-area {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 20px;
+            -webkit-overflow-scrolling: touch; 
+        }
+        
+        .scroll-area::-webkit-scrollbar { width: 4px; }
+        .scroll-area::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+        .section-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+            display: block;
+            margin-top: 24px;
+            font-weight: 600;
+        }
+        .section-label:first-child { margin-top: 0; }
+
+        .group-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+        }
+
+        button.group-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            padding: 12px 0;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+
+        button.group-btn:hover {
+            border-color: rgba(255,255,255,0.3);
+            color: #fff;
+            background: rgba(255,255,255,0.02);
+        }
+
+        button.group-btn.active {
+            background: #fff;
+            color: #000;
+            border-color: #fff;
+            font-weight: 600;
+        }
+
+        /* --- Controls --- */
+        .controls-footer {
+            padding: 20px;
+            border-top: 1px solid var(--border-color);
+            background: rgba(0,0,0,0.2);
+            flex-shrink: 0;
+        }
+
+        .control-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            gap: 12px;
+        }
+
+        .control-label {
+            font-size: 11px;
+            color: #888;
+            min-width: 60px;
+        }
+        
+        .control-val {
+            font-size: 10px;
+            color: #555;
+            width: 30px;
+            text-align: right;
+            font-feature-settings: "tnum";
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            flex-grow: 1;
+            height: 4px; 
+            background: #333;
+            outline: none;
+            border-radius: 2px;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px; height: 18px; 
+            background: #fff;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            border: 2px solid #111;
+        }
+        
+        .control-row.disabled { opacity: 0.3; pointer-events: none; }
+
+        input[type="color"] {
+            -webkit-appearance: none;
+            border: 1px solid var(--border-color);
+            width: 100%; height: 36px;
+            padding: 0;
+            background: none;
+            cursor: pointer;
+            border-radius: 6px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 40px; height: 24px;
+            background: #333;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .toggle-switch.active { background: #fff; }
+        .toggle-knob {
+            position: absolute;
+            top: 2px; left: 2px;
+            width: 20px; height: 20px;
+            background: #000;
+            border-radius: 50%;
+            transition: transform 0.2s;
+        }
+        .toggle-switch.active .toggle-knob { transform: translateX(16px); }
+
+        .btn-row { display: flex; gap: 8px; margin-top: 10px; }
+        .action-btn {
+            flex: 1;
+            padding: 14px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border-color);
+            color: #fff;
+            font-size: 11px;
+            text-transform: uppercase;
+            cursor: pointer;
+            border-radius: 6px;
+            font-weight: 500;
+            text-align: center;
+        }
+        .action-btn:hover { background: rgba(255,255,255,0.1); }
+
+        /* --- Canvas & Tools --- */
+        .canvas-container {
+            flex-grow: 1;
+            position: relative;
+            cursor: crosshair;
+            overflow: hidden;
+            background: #050505;
+            background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 20px 20px;
+            touch-action: none; 
+        }
+
+        canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; touch-action: none; }
+        #gridCanvas { z-index: 5; pointer-events: none; }
+        #drawCanvas { z-index: 10; pointer-events: none; } 
+        #previewCanvas { z-index: 15; } 
+
+        .toolbar {
+            position: absolute;
+            top: 20px; right: 20px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            padding: 6px;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 50;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .tool-btn {
+            width: 44px; height: 44px; /* Larger touch target */
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 8px;
+            color: #888;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .tool-btn:hover { color: #fff; background: rgba(255,255,255,0.05); }
+        .tool-btn.active { color: #000; background: #fff; }
+        .tool-btn svg { width: 20px; height: 20px; }
+
+        .status-bar {
+            position: absolute;
+            bottom: 20px; right: 20px;
+            text-align: right;
+            pointer-events: none;
+            z-index: 20;
+        }
+        .status-item { 
+            display: flex; align-items: center; justify-content: flex-end;
+            gap: 12px; margin-top: 6px;
+            font-size: 10px; letter-spacing: 0.05em;
+            color: rgba(255,255,255,0.4); 
+            text-transform: uppercase;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+        .legend-mark { width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.5); }
+        .l-mirror { width: 100%; height: 1px; background: #fff; }
+        .l-glide { width: 100%; height: 1px; border-bottom: 1px dashed #fff; }
+        
+        .s-diamond { width: 6px; height: 6px; background: #fff; transform: rotate(45deg); }
+        .s-triangle { width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-bottom: 7px solid #fff; }
+        .s-square { width: 6px; height: 6px; background: #fff; }
+        .s-hex { width: 8px; height: 8px; background: #fff; clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%); }
+
+        /* --- Mobile Responsive --- */
+        @media (max-width: 900px) {
+            .main-layout {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                height: 45vh;
+                order: 2;
+                border-right: none;
+                border-top: 1px solid var(--border-color);
+            }
+
+            .canvas-container {
+                width: 100%;
+                height: 55vh;
+                order: 1;
+            }
+
+            .toolbar {
+                top: auto; 
+                bottom: 20px; 
+                left: 20px;
+                right: auto;
+                flex-direction: row; 
+            }
+
+            .status-bar {
+                top: 20px; 
+                bottom: auto;
+            }
+            
+            .sidebar-header { padding: 12px; }
+            .scroll-area { padding: 15px; }
+            .controls-footer { padding: 15px; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="main-layout">
+        
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h1>Estudio de Teselados</h1>
+            </div>
+
+            <div class="scroll-area">
+                
+                <span class="section-label">Básicos</span>
+                <div class="group-grid">
+                    <button class="group-btn" onclick="app.setGroup('p1')">p1</button>
+                    <button class="group-btn" onclick="app.setGroup('pm')">pm</button>
+                    <button class="group-btn" onclick="app.setGroup('pg')">pg</button>
+                    <button class="group-btn" onclick="app.setGroup('cm')">cm</button>
+                </div>
+
+                <span class="section-label">Rotación 180°</span>
+                <div class="group-grid" style="grid-template-columns: repeat(3, 1fr);">
+                    <button class="group-btn" onclick="app.setGroup('p2')">p2</button>
+                    <button class="group-btn" onclick="app.setGroup('pmm')">pmm</button>
+                    <button class="group-btn" onclick="app.setGroup('pmg')">pmg</button>
+                    <button class="group-btn" onclick="app.setGroup('pgg')">pgg</button>
+                    <button class="group-btn" onclick="app.setGroup('cmm')">cmm</button>
+                </div>
+
+                <span class="section-label">Cuadrado (90°)</span>
+                <div class="group-grid" style="grid-template-columns: repeat(3, 1fr);">
+                    <button class="group-btn" onclick="app.setGroup('p4')">p4</button>
+                    <button class="group-btn active" onclick="app.setGroup('p4m')">p4m</button>
+                    <button class="group-btn" onclick="app.setGroup('p4g')">p4g</button>
+                </div>
+
+                <span class="section-label">Hexagonal (60°)</span>
+                <div class="group-grid" style="grid-template-columns: repeat(3, 1fr);">
+                    <button class="group-btn" onclick="app.setGroup('p3')">p3</button>
+                    <button class="group-btn" onclick="app.setGroup('p3m1')">p3m1</button>
+                    <button class="group-btn" onclick="app.setGroup('p31m')">p31m</button>
+                    <button class="group-btn" onclick="app.setGroup('p6')">p6</button>
+                    <button class="group-btn" onclick="app.setGroup('p6m')">p6m</button>
+                </div>
+
+            </div>
+
+            <div class="controls-footer">
+                
+                <div class="control-row">
+                    <span class="control-label">Guías</span>
+                    <div class="toggle-switch active" id="guideToggle" onclick="app.toggleGuides()">
+                        <div class="toggle-knob"></div>
+                    </div>
+                </div>
+
+                <div class="control-row">
+                    <span class="control-label">Asistente</span>
+                    <div class="toggle-switch" id="smoothToggle" onclick="app.toggleSmoothing()">
+                        <div class="toggle-knob"></div>
+                    </div>
+                </div>
+
+                <div class="control-row">
+                    <span class="control-label">Escala</span>
+                    <input type="range" min="50" max="400" value="160" id="scaleSlider" oninput="app.updateParams()">
+                </div>
+
+                <div class="control-row" id="row-ratio">
+                    <span class="control-label">Proporción</span>
+                    <input type="range" min="50" max="200" value="100" id="ratioSlider" oninput="app.updateParams()">
+                    <span class="control-val" id="val-ratio">1.0</span>
+                </div>
+
+                <div class="control-row" id="row-angle">
+                    <span class="control-label">Ángulo</span>
+                    <input type="range" min="30" max="150" value="90" id="angleSlider" oninput="app.updateParams()">
+                    <span class="control-val" id="val-angle">90°</span>
+                </div>
+
+                <div class="control-row">
+                    <span class="control-label">Grosor</span>
+                    <input type="range" min="1" max="40" value="4" id="strokeSlider" oninput="app.lineWidth = this.value">
+                </div>
+
+                <div class="control-row">
+                    <input type="color" value="#ffffff" id="colorPicker" oninput="app.color = this.value">
+                </div>
+                
+                <div class="btn-row">
+                    <button class="action-btn" onclick="app.undo()">Deshacer</button>
+                    <button class="action-btn" onclick="app.clear()">Limpiar</button>
+                </div>
+                <div class="btn-row">
+                    <button class="action-btn" onclick="app.download()">Guardar Imagen</button>
+                    <button class="action-btn" onclick="app.downloadTile()">Guardar Azulejo</button>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="canvas-container" id="container">
+            <canvas id="gridCanvas"></canvas>
+            <canvas id="drawCanvas"></canvas>
+            <canvas id="previewCanvas"></canvas>
+            
+            <div class="toolbar">
+                <div class="tool-btn active" id="tool-pen" onclick="app.setTool('pen')" title="Mano alzada">
+                    <i data-lucide="pencil"></i>
+                </div>
+                <div class="tool-btn" id="tool-line" onclick="app.setTool('line')" title="Línea">
+                    <i data-lucide="minus"></i>
+                </div>
+                <div class="tool-btn" id="tool-rect" onclick="app.setTool('rect')" title="Rectángulo">
+                    <i data-lucide="square"></i>
+                </div>
+                <div class="tool-btn" id="tool-circle" onclick="app.setTool('circle')" title="Círculo">
+                    <i data-lucide="circle"></i>
+                </div>
+            </div>
+
+            <div class="status-bar" id="legend">
+                <div style="font-weight:600; color:#fff; margin-bottom:10px; letter-spacing:0.1em; font-size:11px;">LEYENDA</div>
+                <div class="status-item">Región <div class="legend-mark" style="background: rgba(59,130,246,0.2)"></div></div>
+                <div class="status-item">Espejo <div class="legend-mark"><div class="l-mirror"></div></div></div>
+                <div class="status-item">Deslizamiento <div class="legend-mark"><div class="l-glide"></div></div></div>
+                <div class="status-item">Rotación 2 <div class="legend-mark"><div class="s-diamond"></div></div></div>
+                <div class="status-item">Rotación 3 <div class="legend-mark"><div class="s-triangle"></div></div></div>
+                <div class="status-item">Rotación 4 <div class="legend-mark"><div class="s-square"></div></div></div>
+                <div class="status-item">Rotación 6 <div class="legend-mark"><div class="s-hex"></div></div></div>
+            </div>
+        </div>
+
+    </div>
+
+<script>
+class WallpaperApp {
+    constructor() {
+        this.mainCanvas = document.getElementById('drawCanvas');
+        this.gridCanvas = document.getElementById('gridCanvas');
+        this.prevCanvas = document.getElementById('previewCanvas');
+        this.container = document.getElementById('container');
+        
+        this.ctx = this.mainCanvas.getContext('2d');
+        this.gCtx = this.gridCanvas.getContext('2d');
+        this.pCtx = this.prevCanvas.getContext('2d');
+
+        this.group = 'p4m';
+        this.tool = 'pen';
+        this.color = '#ffffff';
+        this.lineWidth = 4;
+        this.showGuides = true;
+        this.smoothingEnabled = false;
+        
+        this.scale = 160;
+        this.angle = 90;
+        this.ratio = 1.0;
+        
+        this.drawings = [];
+        this.currentPath = []; 
+        
+        this.isDrawing = false;
+        this.startPos = {x:0, y:0};
+        this.lastPos = {x:0, y:0};
+        this.history = []; 
+        this.historyStep = -1;
+
+        this.init();
+    }
+
+    init() {
+        this.resize();
+        window.addEventListener('resize', () => this.resize());
+        this.bindEvents();
+        this.updateParams();
+        lucide.createIcons();
+        this.saveState();
+        
+        document.addEventListener('keydown', (e) => {
+            if((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); this.undo(); }
+        });
+    }
+
+    bindEvents() {
+        const getPos = (e) => {
+            const rect = this.prevCanvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return { x: clientX - rect.left, y: clientY - rect.top };
+        };
+
+        const start = (e) => {
+            if(e.touches) {
+                if (e.touches.length > 1) return; 
+                e.preventDefault(); 
+            }
+            this.isDrawing = true;
+            const pos = getPos(e);
+            this.startPos = pos;
+            this.lastPos = pos;
+            
+            const uv = this.getLatticeTransform(pos.x, pos.y);
+            
+            if (this.tool === 'pen') {
+                this.currentPath = [uv];
+                this.drawDot(pos); 
+            }
+        };
+
+        const move = (e) => {
+            if(e.touches) {
+                if (e.touches.length > 1) return; 
+                e.preventDefault();
+            }
+            if (!this.isDrawing) return;
+            const pos = getPos(e);
+            
+            if (this.tool === 'pen') {
+                this.ctx.strokeStyle = this.color;
+                this.ctx.lineWidth = this.lineWidth;
+                this.ctx.lineCap = 'round';
+                this.ctx.lineJoin = 'round';
+                
+                this.drawSymmetrySegment(this.lastPos, pos, this.ctx);
+                
+                const uv = this.getLatticeTransform(pos.x, pos.y);
+                this.currentPath.push(uv);
+                
+                this.lastPos = pos;
+            } else {
+                this.pCtx.clearRect(0,0,this.width, this.height);
+                this.drawShapePreview(this.startPos, pos);
+                this.lastPos = pos;
+            }
+        };
+
+        const end = (e) => {
+            if(!this.isDrawing) return;
+            this.isDrawing = false;
+            
+            const startUV = this.getLatticeTransform(this.startPos.x, this.startPos.y);
+            const endUV = this.getLatticeTransform(this.lastPos.x, this.lastPos.y);
+
+            if (this.tool === 'pen') {
+                let points = this.currentPath;
+                if(this.smoothingEnabled) {
+                    // Smart Assistant Logic
+                    const detection = this.recognizeShape(points);
+                    points = detection.points; // Use recognized or smoothed points
+                }
+                this.drawings.push({
+                    type: 'pen',
+                    points: points,
+                    color: this.color,
+                    width: this.lineWidth
+                });
+                // Re-draw to clear temp ink and show smoothed/recognized shape
+                this.redrawAll();
+            } else {
+                this.pCtx.clearRect(0,0,this.width, this.height);
+                this.drawShape(this.startPos, this.lastPos, this.ctx);
+                this.drawings.push({
+                    type: this.tool,
+                    p1: startUV,
+                    p2: endUV,
+                    color: this.color,
+                    width: this.lineWidth
+                });
+            }
+            this.saveState();
+        };
+
+        const c = this.prevCanvas; 
+        c.addEventListener('mousedown', start);
+        window.addEventListener('mousemove', move);
+        window.addEventListener('mouseup', end);
+        c.addEventListener('touchstart', start, {passive:false});
+        window.addEventListener('touchmove', move, {passive:false});
+        window.addEventListener('touchend', end);
+    }
+
+    resize() {
+        const parent = this.container;
+        this.width = parent.clientWidth;
+        this.height = parent.clientHeight;
+        [this.mainCanvas, this.gridCanvas, this.prevCanvas].forEach(c => {
+            c.width = this.width; c.height = this.height;
+        });
+        this.redrawAll();
+        this.drawGuides();
+    }
+
+    setGroup(id) {
+        this.group = id;
+        document.querySelectorAll('.group-btn').forEach(b => b.classList.remove('active'));
+        document.querySelector(`button[onclick="app.setGroup('${id}')"]`).classList.add('active');
+        this.updateParams();
+        this.redrawAll();
+    }
+
+    setTool(t) {
+        this.tool = t;
+        document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(`tool-${t}`).classList.add('active');
+    }
+
+    toggleGuides() {
+        this.showGuides = !this.showGuides;
+        document.getElementById('guideToggle').classList.toggle('active', this.showGuides);
+        if(this.showGuides) document.getElementById('legend').style.display = 'block';
+        else document.getElementById('legend').style.display = 'none';
+        this.drawGuides();
+    }
+
+    toggleSmoothing() {
+        this.smoothingEnabled = !this.smoothingEnabled;
+        document.getElementById('smoothToggle').classList.toggle('active', this.smoothingEnabled);
+    }
+
+    // --- SHAPE RECOGNITION ENGINE ---
+    recognizeShape(points) {
+        if(points.length < 3) return { points };
+
+        // 1. Analyze basic metrics in Screen Space
+        const screenPts = points.map(p => this.getScreenPoint(p.u, p.v));
+        const n = screenPts.length;
+        const start = screenPts[0];
+        const end = screenPts[n-1];
+        const distance = Math.hypot(end.x - start.x, end.y - start.y);
+        
+        // Calculate total path length
+        let totalLen = 0;
+        for(let i=1; i<n; i++) {
+            totalLen += Math.hypot(screenPts[i].x - screenPts[i-1].x, screenPts[i].y - screenPts[i-1].y);
+        }
+
+        // 2. Check for Line (high correlation or low deviation)
+        // Simple check: Is the direct distance close to total length?
+        // If ratio is > 0.95, it's very straight.
+        if (distance / totalLen > 0.94) {
+            // Snap to Line
+            return { points: [points[0], points[n-1]] };
+        }
+
+        // 3. Check for Circle
+        // Is it a closed loop? (Start close to End)
+        if (distance < totalLen * 0.25 && totalLen > 20) {
+            // Determine Bounding Box Center approx
+            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+            screenPts.forEach(p => {
+                minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+                minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
+            });
+            
+            const w = maxX - minX;
+            const h = maxY - minY;
+            const ratio = w > h ? h/w : w/h; // 1 is perfect circle
+            
+            // If roughly square bounding box (circularish)
+            if (ratio > 0.65) {
+                // It's a circle/oval. Generate a perfect circle path.
+                const cx = (minX + maxX) / 2;
+                const cy = (minY + maxY) / 2;
+                const r = (w + h) / 4; // avg radius
+                
+                // Generate 30 points circle in Lattice space
+                const circlePoints = [];
+                for(let i=0; i<=32; i++) {
+                    const ang = (i/32) * Math.PI * 2;
+                    const sx = cx + r * Math.cos(ang);
+                    const sy = cy + r * Math.sin(ang);
+                    circlePoints.push(this.getLatticeTransform(sx, sy));
+                }
+                return { points: circlePoints };
+            }
+        }
+
+        // 4. Fallback: Just Smooth
+        return { points: this.smoothPath(points) };
+    }
+
+    smoothPath(points) {
+        if (points.length < 3) return points;
+        const smoothed = [];
+        smoothed.push(points[0]); 
+        for (let i = 1; i < points.length - 1; i++) {
+            const p0 = points[i - 1];
+            const p1 = points[i];
+            const p2 = points[i + 1];
+            // Simple midpoint averaging
+            const u = (p0.u + 2 * p1.u + p2.u) / 4;
+            const v = (p0.v + 2 * p1.v + p2.v) / 4;
+            smoothed.push({ u, v });
+        }
+        smoothed.push(points[points.length - 1]); 
+        return smoothed;
+    }
+
+    updateParams() {
+        this.scale = parseInt(document.getElementById('scaleSlider').value);
+        this.ratio = parseInt(document.getElementById('ratioSlider').value) / 100;
+        this.angle = parseInt(document.getElementById('angleSlider').value);
+        
+        const ratioRow = document.getElementById('row-ratio');
+        const angleRow = document.getElementById('row-angle');
+        const rInput = document.getElementById('ratioSlider');
+        const aInput = document.getElementById('angleSlider');
+
+        document.getElementById('val-ratio').innerText = this.ratio.toFixed(2);
+        document.getElementById('val-angle').innerText = this.angle + '°';
+
+        let lockRatio = false;
+        let lockAngle = false;
+
+        const hexGroups = ['p3', 'p3m1', 'p31m', 'p6', 'p6m'];
+        const squareGroups = ['p4', 'p4m', 'p4g'];
+        const rectGroups = ['pm', 'pg', 'cm', 'pmm', 'pmg', 'pgg', 'cmm'];
+
+        if (hexGroups.includes(this.group)) {
+            lockRatio = true; this.ratio = 1.0;
+            lockAngle = true; this.angle = 60;
+        } else if (squareGroups.includes(this.group)) {
+            lockRatio = true; this.ratio = 1.0;
+            lockAngle = true; this.angle = 90;
+        } else if (rectGroups.includes(this.group)) {
+            lockAngle = true; this.angle = 90;
+        } 
+
+        if(lockRatio) { ratioRow.classList.add('disabled'); rInput.disabled = true; rInput.value = 100; }
+        else { ratioRow.classList.remove('disabled'); rInput.disabled = false; }
+        
+        if(lockAngle) { angleRow.classList.add('disabled'); aInput.disabled = true; aInput.value = this.angle; }
+        else { angleRow.classList.remove('disabled'); aInput.disabled = false; }
+
+        this.drawGuides();
+        this.redrawAll();
+    }
+
+    redrawAll(targetCtx = null, w = null, h = null) {
+        const ctx = targetCtx || this.ctx;
+        const width = w || this.width;
+        const height = h || this.height;
+        
+        if (!targetCtx) ctx.clearRect(0,0,width,height);
+        
+        this.drawings.forEach(d => {
+            ctx.strokeStyle = d.color;
+            ctx.lineWidth = d.width;
+            ctx.fillStyle = d.color;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            if (d.type === 'pen') {
+                for(let i=0; i<d.points.length-1; i++) {
+                    const p1 = this.getScreenPoint(d.points[i].u, d.points[i].v);
+                    const p2 = this.getScreenPoint(d.points[i+1].u, d.points[i+1].v);
+                    this.drawSymmetrySegment(p1, p2, ctx, width, height);
+                }
+            } else {
+                const s = this.getScreenPoint(d.p1.u, d.p1.v);
+                const e = this.getScreenPoint(d.p2.u, d.p2.v);
+                const oldTool = this.tool;
+                this.tool = d.type;
+                this.drawShape(s, e, ctx, false, width, height);
+                this.tool = oldTool;
+            }
+        });
+    }
+
+    getLatticeTransform(x, y) {
+        const s = this.scale;
+        const r = this.ratio;
+        const rad = this.angle * Math.PI / 180;
+        const sin = Math.sin(rad);
+        const cos = Math.cos(rad);
+        const v = y / (s * r * sin);
+        const u = (x / s) - (v * r * cos);
+        return { u, v };
+    }
+
+    getScreenPoint(u, v) {
+        const s = this.scale;
+        const r = this.ratio;
+        const rad = this.angle * Math.PI / 180;
+        const sin = Math.sin(rad);
+        const cos = Math.cos(rad);
+        const x = s*u + s*r*v*cos;
+        const y = s*r*v*sin;
+        return { x, y };
+    }
+
+    getBaseTransforms() {
+        const ops = [];
+        const add = (fn) => ops.push(fn);
+        add((u,v) => [u,v]);
+        switch(this.group) {
+            case 'p1': break;
+            case 'p2': add((u,v) => [-u, -v]); break;
+            case 'pm': add((u,v) => [-u, v]); break; 
+            case 'pg': add((u,v) => [-u, v+0.5]); break;
+            case 'cm': add((u,v) => [-u, v]); add((u,v) => [u+0.5, v+0.5]); add((u,v) => [0.5-u, v+0.5]); break;
+            case 'pmm': add((u,v) => [-u,v]); add((u,v) => [u,-v]); add((u,v) => [-u,-v]); break;
+            case 'pmg': add((u,v) => [-u,v]); add((u,v) => [u+0.5, -v]); add((u,v) => [0.5-u, -v]); break;
+            case 'pgg': add((u,v) => [-u,-v]); add((u,v) => [u+0.5, 0.5-v]); add((u,v) => [0.5-u, v+0.5]); break;
+            case 'cmm': 
+                add((u,v) => [-u,v]); add((u,v) => [u,-v]); add((u,v) => [-u,-v]);
+                add((u,v) => [u+0.5,v+0.5]); add((u,v) => [0.5-u,v+0.5]); add((u,v) => [u+0.5,0.5-v]); add((u,v) => [0.5-u,0.5-v]);
+                break;
+            case 'p4': 
+                add((u,v) => [-v,u]); add((u,v) => [-u,-v]); add((u,v) => [v,-u]);
+                break;
+            case 'p4m': 
+                add((u,v) => [-v,u]); add((u,v) => [-u,-v]); add((u,v) => [v,-u]);
+                add((u,v) => [v,u]); add((u,v) => [-u,v]); add((u,v) => [-v,-u]); add((u,v) => [u,-v]);
+                break;
+            case 'p4g': 
+                add((u,v) => [-v,u]); add((u,v) => [-u,-v]); add((u,v) => [v,-u]);
+                add((u,v) => [u+0.5, 0.5-v]); add((u,v) => [0.5-v, 0.5-u]); add((u,v) => [0.5-u, v+0.5]); add((u,v) => [v+0.5, u+0.5]);
+                break;
+            case 'p3': 
+                add((u,v) => [-v, u+v]); add((u,v) => [-u-v, u]);
+                break;
+            case 'p3m1':
+                add((u,v) => [-v, u+v]); add((u,v) => [-u-v, u]);
+                add((u,v) => [v, u]); add((u,v) => [u+v, -v]); add((u,v) => [u, -u-v]);
+                break;
+            case 'p31m':
+                add((u,v) => [-v, u+v]); add((u,v) => [-u-v, u]);
+                add((u,v) => [u, -v-u]); 
+                add((u,v) => [-v, -u]); 
+                add((u,v) => [-u-v, -v-(u+v)]);
+                break;
+            case 'p6':
+                 add((u,v) => [-v, u+v]); add((u,v) => [-u-v, u]);
+                 add((u,v) => [-u, -v]); 
+                 add((u,v) => [v, -u-v]); add((u,v) => [u+v, -u]);
+                 break;
+            case 'p6m':
+                 add((u,v) => [-v, u+v]); add((u,v) => [-u-v, u]);
+                 add((u,v) => [-u, -v]); 
+                 add((u,v) => [v, -u-v]); add((u,v) => [u+v, -u]);
+                 add((u,v) => [v,u]); 
+                 break;
+        }
+        
+        if(this.group === 'p31m') {
+            let p3 = [(u,v)=>[u,v], (u,v)=>[-v, u+v], (u,v)=>[-u-v, u]];
+            ops.length = 0;
+            p3.forEach(f => {
+                ops.push(f);
+                ops.push((u,v) => { let p=f(u,v); return [p[0], -p[1]-p[0]]; });
+            });
+        }
+        if(this.group === 'p6m') {
+            let p6 = [
+                (u,v)=>[u,v], (u,v)=>[-v, u+v], (u,v)=>[-u-v, u],
+                (u,v)=>[-u,-v], (u,v)=>[v,-u-v], (u,v)=>[u+v,-u]
+            ];
+            ops.length = 0;
+            p6.forEach(f => {
+                ops.push(f);
+                ops.push((u,v) => { let p=f(u,v); return [p[1], p[0]]; });
+            });
+        }
+        return ops;
+    }
+
+    drawSymmetrySegment(p1, p2, ctx, w = null, h = null) {
+        const width = w || this.width;
+        const height = h || this.height;
+        
+        const l1 = this.getLatticeTransform(p1.x, p1.y);
+        const l2 = this.getLatticeTransform(p2.x, p2.y);
+        
+        const corners = [
+            this.getLatticeTransform(0,0),
+            this.getLatticeTransform(width, 0),
+            this.getLatticeTransform(0, height),
+            this.getLatticeTransform(width, height)
+        ];
+        const uMin = Math.min(...corners.map(c=>c.u));
+        const uMax = Math.max(...corners.map(c=>c.u));
+        const vMin = Math.min(...corners.map(c=>c.v));
+        const vMax = Math.max(...corners.map(c=>c.v));
+        
+        const rangeU = Math.ceil(uMax - uMin) + 2;
+        const rangeV = Math.ceil(vMax - vMin) + 2;
+
+        const transforms = this.getBaseTransforms();
+        
+        ctx.beginPath();
+        
+        transforms.forEach(transform => {
+            const t1 = transform(l1.u, l1.v);
+            const t2 = transform(l2.u, l2.v);
+            
+            const startK = Math.floor(uMin - t1[0]);
+            const startR = Math.floor(vMin - t1[1]);
+            
+            for(let c = 0; c <= rangeU; c++) {
+                for(let r = 0; r <= rangeV; r++) {
+                    const uShift = startK + c;
+                    const vShift = startR + r;
+                    
+                    const s = this.getScreenPoint(t1[0] + uShift, t1[1] + vShift);
+                    const e = this.getScreenPoint(t2[0] + uShift, t2[1] + vShift);
+                    
+                    ctx.moveTo(s.x, s.y);
+                    ctx.lineTo(e.x, e.y);
+                }
+            }
+        });
+        
+        ctx.stroke();
+    }
+
+    drawDot(p) {
+        this.ctx.fillStyle = this.color;
+        const oldCap = this.ctx.lineCap;
+        this.ctx.lineCap = 'round';
+        this.ctx.lineWidth = this.lineWidth;
+        this.ctx.strokeStyle = this.color;
+        this.drawSymmetrySegment(p, p, this.ctx);
+        this.ctx.lineCap = oldCap;
+    }
+
+    getSymmetricalPoints(p) {
+        const l = this.getLatticeTransform(p.x, p.y);
+        const corners = [
+            this.getLatticeTransform(0,0),
+            this.getLatticeTransform(this.width, 0),
+            this.getLatticeTransform(0, this.height),
+            this.getLatticeTransform(this.width, this.height)
+        ];
+        const uMin = Math.min(...corners.map(c=>c.u));
+        const uMax = Math.max(...corners.map(c=>c.u));
+        const vMin = Math.min(...corners.map(c=>c.v));
+        const vMax = Math.max(...corners.map(c=>c.v));
+        const rangeU = Math.ceil(uMax - uMin) + 2;
+        const rangeV = Math.ceil(vMax - vMin) + 2;
+        
+        const results = [];
+        const transforms = this.getBaseTransforms();
+        
+        transforms.forEach(transform => {
+            const t = transform(l.u, l.v);
+            const startK = Math.floor(uMin - t[0]);
+            const startR = Math.floor(vMin - t[1]);
+            
+            for(let c = 0; c <= rangeU; c++) {
+                for(let r = 0; r <= rangeV; r++) {
+                    results.push(this.getScreenPoint(t[0] + startK + c, t[1] + startR + r));
+                }
+            }
+        });
+        return results;
+    }
+
+    drawShapePreview(p1, p2) {
+        this.drawShape(p1, p2, this.pCtx, true);
+    }
+
+    drawShape(p1, p2, ctx, isPreview=false, w=null, h=null) {
+        const width = w || this.width;
+        const height = h || this.height;
+        
+        const l1 = this.getLatticeTransform(p1.x, p1.y);
+        const l2 = this.getLatticeTransform(p2.x, p2.y);
+        
+        const corners = [
+            this.getLatticeTransform(0,0),
+            this.getLatticeTransform(width, 0),
+            this.getLatticeTransform(0, height),
+            this.getLatticeTransform(width, height)
+        ];
+        const uMin = Math.min(...corners.map(c=>c.u));
+        const uMax = Math.max(...corners.map(c=>c.u));
+        const vMin = Math.min(...corners.map(c=>c.v));
+        const vMax = Math.max(...corners.map(c=>c.v));
+        const rangeU = Math.ceil(uMax - uMin) + 2;
+        const rangeV = Math.ceil(vMax - vMin) + 2;
+
+        if(isPreview) { ctx.strokeStyle = this.color; ctx.fillStyle = 'rgba(255,255,255,0.2)'; }
+        
+        const transforms = this.getBaseTransforms();
+        
+        transforms.forEach(transform => {
+            const t1 = transform(l1.u, l1.v);
+            const t2 = transform(l2.u, l2.v);
+            
+            const startK = Math.floor(uMin - t1[0]);
+            const startR = Math.floor(vMin - t1[1]);
+            
+            for(let c = 0; c <= rangeU; c++) {
+                for(let r = 0; r <= rangeV; r++) {
+                    const uShift = startK + c;
+                    const vShift = startR + r;
+                    
+                    const s = this.getScreenPoint(t1[0] + uShift, t1[1] + vShift);
+                    const e = this.getScreenPoint(t2[0] + uShift, t2[1] + vShift);
+                    
+                    ctx.beginPath();
+                    if (this.tool === 'line') {
+                        ctx.moveTo(s.x, s.y); ctx.lineTo(e.x, e.y);
+                    }
+                    else if (this.tool === 'rect') {
+                        ctx.rect(s.x, s.y, e.x-s.x, e.y-s.y);
+                    }
+                    else if (this.tool === 'circle') {
+                        const rad = Math.hypot(e.x-s.x, e.y-s.y);
+                        ctx.arc(s.x, s.y, rad, 0, Math.PI*2);
+                    }
+                    ctx.stroke();
+                }
+            }
+        });
+    }
+
+    drawGuides() {
+        const c = this.gCtx;
+        c.clearRect(0, 0, this.width, this.height);
+        
+        if (!this.showGuides) return;
+        
+        c.lineWidth = 1;
+        c.strokeStyle = getComputedStyle(document.body).getPropertyValue('--guide-color');
+        
+        const corners = [
+            this.getLatticeTransform(0,0),
+            this.getLatticeTransform(this.width, 0),
+            this.getLatticeTransform(0, this.height),
+            this.getLatticeTransform(this.width, this.height)
+        ];
+        const uMin = Math.floor(Math.min(...corners.map(c=>c.u)));
+        const uMax = Math.ceil(Math.max(...corners.map(c=>c.u)));
+        const vMin = Math.floor(Math.min(...corners.map(c=>c.v)));
+        const vMax = Math.ceil(Math.max(...corners.map(c=>c.v)));
+
+        c.beginPath();
+        for(let u = uMin; u <= uMax; u++) {
+            const top = this.getScreenPoint(u, vMin);
+            const bot = this.getScreenPoint(u, vMax);
+            c.moveTo(top.x, top.y); c.lineTo(bot.x, bot.y);
+        }
+        for(let v = vMin; v <= vMax; v++) {
+            const left = this.getScreenPoint(uMin, v);
+            const right = this.getScreenPoint(uMax, v);
+            c.moveTo(left.x, left.y); c.lineTo(right.x, right.y);
+        }
+        c.stroke();
+        
+        c.fillStyle = getComputedStyle(document.body).getPropertyValue('--region-color');
+        const p00 = this.getScreenPoint(0,0);
+        const p10 = this.getScreenPoint(1,0);
+        const p11 = this.getScreenPoint(1,1);
+        const p01 = this.getScreenPoint(0,1);
+        
+        c.beginPath();
+        c.moveTo(p00.x, p00.y);
+        
+        if (['p4m'].includes(this.group)) { 
+            c.lineTo(p10.x, p10.y); 
+            c.lineTo(this.getScreenPoint(0.5, 0.5).x, this.getScreenPoint(0.5, 0.5).y); 
+        }
+        else if (['p6m'].includes(this.group)) { 
+             const t1 = this.getScreenPoint(0.5, 0);
+             const t2 = this.getScreenPoint(1/3, 1/3);
+             c.lineTo(t1.x, t1.y); c.lineTo(t2.x, t2.y);
+        }
+        else if (['p6'].includes(this.group)) {
+             const t1 = this.getScreenPoint(1, 0);
+             const t2 = this.getScreenPoint(0, 1);
+             c.lineTo(t1.x, t1.y); c.lineTo(t2.x, t2.y);
+        }
+        else {
+             c.lineTo(p10.x, p10.y); c.lineTo(p11.x, p11.y); c.lineTo(p01.x, p01.y);
+        }
+        c.fill();
+
+        const drawMarker = (u, v, type) => {
+            const p = this.getScreenPoint(u, v);
+            c.fillStyle = '#fff';
+            c.beginPath();
+            const s = 4;
+            if (type === 2) { 
+                c.moveTo(p.x, p.y-s); c.lineTo(p.x+s, p.y); c.lineTo(p.x, p.y+s); c.lineTo(p.x-s, p.y);
+            } else if (type === 3) { 
+                c.moveTo(p.x, p.y-s); c.lineTo(p.x+s, p.y+s); c.lineTo(p.x-s, p.y+s);
+            } else if (type === 4) { 
+                c.rect(p.x-s, p.y-s, s*2, s*2);
+            } else if (type === 6) { 
+                for(let i=0; i<6; i++) {
+                    const ang = i * Math.PI / 3;
+                    c.lineTo(p.x + s*Math.cos(ang), p.y + s*Math.sin(ang));
+                }
+            }
+            c.fill();
+        };
+
+        const drawLine = (u1, v1, u2, v2, dashed) => {
+            const p1 = this.getScreenPoint(u1, v1);
+            const p2 = this.getScreenPoint(u2, v2);
+            c.beginPath();
+            c.strokeStyle = '#fff';
+            c.setLineDash(dashed ? [6, 4] : []);
+            c.lineWidth = 1.5;
+            c.moveTo(p1.x, p1.y); c.lineTo(p2.x, p2.y);
+            c.stroke();
+            c.setLineDash([]);
+        };
+
+        const uStart = uMin - 1; const uEnd = uMax + 1;
+        const vStart = vMin - 1; const vEnd = vMax + 1;
+
+        if (['pm', 'pmm', 'pmg', 'cmm', 'p4m', 'p6m'].includes(this.group)) {
+             for(let u=uStart; u<=uEnd; u+=0.5) drawLine(u, vStart, u, vEnd, false);
+        }
+        if (['pmm', 'cmm', 'p4m'].includes(this.group)) {
+             for(let v=vStart; v<=vEnd; v+=0.5) drawLine(uStart, v, uEnd, v, false);
+        }
+        if (['pg', 'pmg', 'pgg', 'p4g'].includes(this.group)) {
+             for(let u=uStart+0.5; u<=uEnd; u+=1) drawLine(u, vStart, u, vEnd, true);
+        }
+
+        for(let u=uStart; u<=uEnd; u++) {
+            for(let v=vStart; v<=vEnd; v++) {
+                if (['p2', 'pmm', 'cmm', 'pmg', 'pgg'].includes(this.group)) {
+                    drawMarker(u, v, 2);
+                    drawMarker(u+0.5, v+0.5, 2);
+                    if(this.group !== 'p2') {
+                        drawMarker(u+0.5, v, 2);
+                        drawMarker(u, v+0.5, 2);
+                    }
+                }
+                if (['p4', 'p4m', 'p4g'].includes(this.group)) {
+                    drawMarker(u, v, 4);
+                    drawMarker(u+0.5, v+0.5, 4);
+                    if(this.group === 'p4m') {
+                        drawMarker(u+0.5, v, 2);
+                        drawMarker(u, v+0.5, 2);
+                    }
+                }
+                if (['p3', 'p3m1', 'p31m', 'p6', 'p6m'].includes(this.group)) {
+                     const isP6 = ['p6', 'p6m'].includes(this.group);
+                     drawMarker(u, v, isP6 ? 6 : 3);
+                     if(isP6) {
+                         drawMarker(u+1/3, v+1/3, 3);
+                         drawMarker(u+2/3, v+2/3, 3);
+                         drawMarker(u+0.5, v, 2);
+                         drawMarker(u, v+0.5, 2);
+                         drawMarker(u+0.5, v+0.5, 2);
+                     } else {
+                         drawMarker(u+1/3, v+1/3, 3);
+                         drawMarker(u+2/3, v+2/3, 3);
+                     }
+                }
+            }
+        }
+    }
+
+    saveState() {
+        this.historyStep++;
+        this.history = this.history.slice(0, this.historyStep);
+        this.history.push(JSON.stringify(this.drawings));
+        if(this.history.length > 20) { this.history.shift(); this.historyStep--; }
+    }
+    undo() {
+        if(this.historyStep > 0) {
+            this.historyStep--;
+            this.restoreState(this.history[this.historyStep]);
+        } else { this.clear(false); }
+    }
+    restoreState(json) {
+        this.drawings = JSON.parse(json);
+        this.redrawAll();
+    }
+    clear(save=true) {
+        this.drawings = [];
+        this.redrawAll();
+        if(save) { this.historyStep = -1; this.history = []; this.saveState(); }
+    }
+    download() {
+        const link = document.createElement('a');
+        link.download = 'teselados.png';
+        const t = document.createElement('canvas'); t.width=this.width; t.height=this.height;
+        const tx = t.getContext('2d'); tx.fillStyle = '#050505'; tx.fillRect(0,0,this.width,this.height);
+        tx.drawImage(this.mainCanvas,0,0);
+        link.href = t.toDataURL(); link.click();
+    }
+    
+    downloadTile() {
+        // Calculate Seamless Repeat Unit dimensions
+        let w, h;
+        const hexGroups = ['p3', 'p3m1', 'p31m', 'p6', 'p6m'];
+        const isHex = hexGroups.includes(this.group);
+        
+        if(isHex) {
+            // For hexagonal groups, a rectangular tile that repeats seamlessly 
+            // generally covers a width of s and a height of s * sqrt(3).
+            // This includes 2 staggered rows.
+            w = this.scale;
+            h = this.scale * Math.sqrt(3);
+        } else {
+            // For rectangular/square, it's just the unit cell.
+            // If angle is not 90, this rectangle won't tile seamlessly!
+            // But for standard use (90 deg), it's perfect.
+            w = this.scale;
+            h = this.scale * this.ratio;
+        }
+        
+        const t = document.createElement('canvas'); 
+        t.width = w; t.height = h;
+        const tx = t.getContext('2d'); 
+        
+        tx.fillStyle = '#050505'; 
+        tx.fillRect(0, 0, w, h);
+        
+        // Render the scene onto this small canvas
+        this.redrawAll(tx, w, h);
+        
+        const link = document.createElement('a');
+        link.download = 'azulejo.png';
+        link.href = t.toDataURL(); 
+        link.click();
+    }
+}
+
+const app = new WallpaperApp();
+</script>
+</body>
+</html>
