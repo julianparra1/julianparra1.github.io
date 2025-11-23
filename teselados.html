@@ -136,6 +136,7 @@
             justify-content: space-between;
             margin-bottom: 16px;
             gap: 12px;
+            transition: opacity 0.2s;
         }
 
         .control-label {
@@ -170,7 +171,7 @@
             border: 2px solid #111;
         }
         
-        .control-row.disabled { opacity: 0.3; pointer-events: none; }
+        .control-row.hidden { display: none !important; }
 
         input[type="color"] {
             -webkit-appearance: none;
@@ -285,42 +286,23 @@
         .s-square { width: 6px; height: 6px; background: #fff; }
         .s-hex { width: 8px; height: 8px; background: #fff; clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%); }
 
-        /* --- Mobile Responsive --- */
+        /* --- Mobile Responsive Fix --- */
         @media (max-width: 900px) {
-            .main-layout {
-                flex-direction: column;
-            }
-            
+            .main-layout { flex-direction: column; }
             .sidebar {
-                width: 100%;
-                height: 45vh;
-                order: 2;
-                border-right: none;
-                border-top: 1px solid var(--border-color);
+                width: 100%; height: 45vh; order: 2;
+                border-right: none; border-top: 1px solid var(--border-color);
+                display: block; overflow-y: auto; -webkit-overflow-scrolling: touch;
             }
-
-            .canvas-container {
-                width: 100%;
-                height: 55vh;
-                order: 1;
-            }
-
-            .toolbar {
-                top: auto; 
-                bottom: 20px; 
-                left: 20px;
-                right: auto;
-                flex-direction: row; 
-            }
-
-            .status-bar {
-                top: 20px; 
-                bottom: auto;
-            }
-            
+            .sidebar-header { position: sticky; top: 0; z-index: 30; border-bottom: 1px solid var(--border-color); }
+            .scroll-area { flex: none; overflow: visible; height: auto; padding-bottom: 0; }
+            .controls-footer { flex: none; border-top: none; padding-top: 0; }
+            .canvas-container { width: 100%; height: 55vh; order: 1; }
+            .toolbar { top: auto; bottom: 20px; left: 20px; right: auto; flex-direction: row; }
+            .status-bar { top: 20px; bottom: auto; }
             .sidebar-header { padding: 12px; }
             .scroll-area { padding: 15px; }
-            .controls-footer { padding: 15px; }
+            .controls-footer { padding: 5px 15px 30px 15px; }
         }
 
     </style>
@@ -381,24 +363,36 @@
                 </div>
 
                 <div class="control-row">
-                    <span class="control-label">Asistente</span>
+                    <span class="control-label">Suavizado</span>
                     <div class="toggle-switch" id="smoothToggle" onclick="app.toggleSmoothing()">
                         <div class="toggle-knob"></div>
                     </div>
                 </div>
 
-                <div class="control-row">
-                    <span class="control-label">Escala</span>
-                    <input type="range" min="50" max="400" value="160" id="scaleSlider" oninput="app.updateParams()">
+                <div class="control-row hidden" id="row-smooth-level">
+                    <span class="control-label">Nivel</span>
+                    <input type="range" min="1" max="10" value="3" id="smoothSlider" disabled oninput="app.updateParams()">
+                    <span class="control-val" id="val-smooth">3</span>
                 </div>
 
-                <div class="control-row" id="row-ratio">
+                <div class="control-row hidden" id="row-glide">
+                    <span class="control-label">Deslizamiento</span>
+                    <input type="range" min="0" max="100" value="50" id="glideSlider" oninput="app.updateParams()">
+                    <span class="control-val" id="val-glide">0.5</span>
+                </div>
+
+                <div class="control-row">
+                    <span class="control-label">Escala</span>
+                    <input type="range" min="70" max="400" value="160" id="scaleSlider" oninput="app.updateParams()">
+                </div>
+
+                <div class="control-row hidden" id="row-ratio">
                     <span class="control-label">Proporción</span>
                     <input type="range" min="50" max="200" value="100" id="ratioSlider" oninput="app.updateParams()">
                     <span class="control-val" id="val-ratio">1.0</span>
                 </div>
 
-                <div class="control-row" id="row-angle">
+                <div class="control-row hidden" id="row-angle">
                     <span class="control-label">Ángulo</span>
                     <input type="range" min="30" max="150" value="90" id="angleSlider" oninput="app.updateParams()">
                     <span class="control-val" id="val-angle">90°</span>
@@ -477,10 +471,12 @@ class WallpaperApp {
         this.lineWidth = 4;
         this.showGuides = true;
         this.smoothingEnabled = false;
+        this.smoothingLevel = 3;
         
         this.scale = 160;
         this.angle = 90;
         this.ratio = 1.0;
+        this.glide = 0.5;
         
         this.drawings = [];
         this.currentPath = []; 
@@ -490,6 +486,9 @@ class WallpaperApp {
         this.lastPos = {x:0, y:0};
         this.history = []; 
         this.historyStep = -1;
+
+        this.cachedTransforms = [];
+        this.viewBounds = { uMin:0, uMax:0, vMin:0, vMax:0, rangeU:0, rangeV:0 };
 
         this.init();
     }
@@ -570,9 +569,9 @@ class WallpaperApp {
             if (this.tool === 'pen') {
                 let points = this.currentPath;
                 if(this.smoothingEnabled) {
-                    // Smart Assistant Logic
-                    const detection = this.recognizeShape(points);
-                    points = detection.points; // Use recognized or smoothed points
+                    for(let i=0; i<this.smoothingLevel; i++) {
+                        points = this.smoothPath(points);
+                    }
                 }
                 this.drawings.push({
                     type: 'pen',
@@ -580,7 +579,6 @@ class WallpaperApp {
                     color: this.color,
                     width: this.lineWidth
                 });
-                // Re-draw to clear temp ink and show smoothed/recognized shape
                 this.redrawAll();
             } else {
                 this.pCtx.clearRect(0,0,this.width, this.height);
@@ -612,6 +610,7 @@ class WallpaperApp {
         [this.mainCanvas, this.gridCanvas, this.prevCanvas].forEach(c => {
             c.width = this.width; c.height = this.height;
         });
+        this.updateViewBounds();
         this.redrawAll();
         this.drawGuides();
     }
@@ -641,68 +640,17 @@ class WallpaperApp {
     toggleSmoothing() {
         this.smoothingEnabled = !this.smoothingEnabled;
         document.getElementById('smoothToggle').classList.toggle('active', this.smoothingEnabled);
-    }
-
-    // --- SHAPE RECOGNITION ENGINE ---
-    recognizeShape(points) {
-        if(points.length < 3) return { points };
-
-        // 1. Analyze basic metrics in Screen Space
-        const screenPts = points.map(p => this.getScreenPoint(p.u, p.v));
-        const n = screenPts.length;
-        const start = screenPts[0];
-        const end = screenPts[n-1];
-        const distance = Math.hypot(end.x - start.x, end.y - start.y);
         
-        // Calculate total path length
-        let totalLen = 0;
-        for(let i=1; i<n; i++) {
-            totalLen += Math.hypot(screenPts[i].x - screenPts[i-1].x, screenPts[i].y - screenPts[i-1].y);
+        const levelRow = document.getElementById('row-smooth-level');
+        const levelInput = document.getElementById('smoothSlider');
+        
+        if(this.smoothingEnabled) {
+            levelRow.classList.remove('hidden');
+            levelInput.disabled = false;
+        } else {
+            levelRow.classList.add('hidden');
+            levelInput.disabled = true;
         }
-
-        // 2. Check for Line (high correlation or low deviation)
-        // Simple check: Is the direct distance close to total length?
-        // If ratio is > 0.95, it's very straight.
-        if (distance / totalLen > 0.94) {
-            // Snap to Line
-            return { points: [points[0], points[n-1]] };
-        }
-
-        // 3. Check for Circle
-        // Is it a closed loop? (Start close to End)
-        if (distance < totalLen * 0.25 && totalLen > 20) {
-            // Determine Bounding Box Center approx
-            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-            screenPts.forEach(p => {
-                minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
-                minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
-            });
-            
-            const w = maxX - minX;
-            const h = maxY - minY;
-            const ratio = w > h ? h/w : w/h; // 1 is perfect circle
-            
-            // If roughly square bounding box (circularish)
-            if (ratio > 0.65) {
-                // It's a circle/oval. Generate a perfect circle path.
-                const cx = (minX + maxX) / 2;
-                const cy = (minY + maxY) / 2;
-                const r = (w + h) / 4; // avg radius
-                
-                // Generate 30 points circle in Lattice space
-                const circlePoints = [];
-                for(let i=0; i<=32; i++) {
-                    const ang = (i/32) * Math.PI * 2;
-                    const sx = cx + r * Math.cos(ang);
-                    const sy = cy + r * Math.sin(ang);
-                    circlePoints.push(this.getLatticeTransform(sx, sy));
-                }
-                return { points: circlePoints };
-            }
-        }
-
-        // 4. Fallback: Just Smooth
-        return { points: this.smoothPath(points) };
     }
 
     smoothPath(points) {
@@ -710,12 +658,8 @@ class WallpaperApp {
         const smoothed = [];
         smoothed.push(points[0]); 
         for (let i = 1; i < points.length - 1; i++) {
-            const p0 = points[i - 1];
-            const p1 = points[i];
-            const p2 = points[i + 1];
-            // Simple midpoint averaging
-            const u = (p0.u + 2 * p1.u + p2.u) / 4;
-            const v = (p0.v + 2 * p1.v + p2.v) / 4;
+            const p0 = points[i - 1]; const p1 = points[i]; const p2 = points[i + 1];
+            const u = (p0.u + 2 * p1.u + p2.u) / 4; const v = (p0.v + 2 * p1.v + p2.v) / 4;
             smoothed.push({ u, v });
         }
         smoothed.push(points[points.length - 1]); 
@@ -726,260 +670,238 @@ class WallpaperApp {
         this.scale = parseInt(document.getElementById('scaleSlider').value);
         this.ratio = parseInt(document.getElementById('ratioSlider').value) / 100;
         this.angle = parseInt(document.getElementById('angleSlider').value);
+        this.glide = parseInt(document.getElementById('glideSlider').value) / 100;
+        this.smoothingLevel = parseInt(document.getElementById('smoothSlider').value);
         
         const ratioRow = document.getElementById('row-ratio');
         const angleRow = document.getElementById('row-angle');
+        const glideRow = document.getElementById('row-glide');
         const rInput = document.getElementById('ratioSlider');
         const aInput = document.getElementById('angleSlider');
+        const gInput = document.getElementById('glideSlider');
 
         document.getElementById('val-ratio').innerText = this.ratio.toFixed(2);
         document.getElementById('val-angle').innerText = this.angle + '°';
+        document.getElementById('val-glide').innerText = this.glide.toFixed(2);
+        document.getElementById('val-smooth').innerText = this.smoothingLevel;
 
-        let lockRatio = false;
-        let lockAngle = false;
-
+        let lockRatio = false; let lockAngle = false; let enableGlide = false;
         const hexGroups = ['p3', 'p3m1', 'p31m', 'p6', 'p6m'];
         const squareGroups = ['p4', 'p4m', 'p4g'];
         const rectGroups = ['pm', 'pg', 'cm', 'pmm', 'pmg', 'pgg', 'cmm'];
+        const glideGroups = ['pg', 'pmg', 'pgg', 'p4g'];
 
-        if (hexGroups.includes(this.group)) {
-            lockRatio = true; this.ratio = 1.0;
-            lockAngle = true; this.angle = 60;
-        } else if (squareGroups.includes(this.group)) {
-            lockRatio = true; this.ratio = 1.0;
-            lockAngle = true; this.angle = 90;
-        } else if (rectGroups.includes(this.group)) {
-            lockAngle = true; this.angle = 90;
-        } 
-
-        if(lockRatio) { ratioRow.classList.add('disabled'); rInput.disabled = true; rInput.value = 100; }
-        else { ratioRow.classList.remove('disabled'); rInput.disabled = false; }
+        if (hexGroups.includes(this.group)) { lockRatio = true; this.ratio = 1.0; lockAngle = true; this.angle = 60; }
+        else if (squareGroups.includes(this.group)) { lockRatio = true; this.ratio = 1.0; lockAngle = true; this.angle = 90; }
+        else if (rectGroups.includes(this.group)) { lockAngle = true; this.angle = 90; } 
         
-        if(lockAngle) { angleRow.classList.add('disabled'); aInput.disabled = true; aInput.value = this.angle; }
-        else { angleRow.classList.remove('disabled'); aInput.disabled = false; }
+        if (glideGroups.includes(this.group)) { enableGlide = true; }
 
+        if(lockRatio) { ratioRow.classList.add('hidden'); rInput.disabled = true; rInput.value = 100; }
+        else { ratioRow.classList.remove('hidden'); rInput.disabled = false; }
+        
+        if(lockAngle) { angleRow.classList.add('hidden'); aInput.disabled = true; aInput.value = this.angle; }
+        else { angleRow.classList.remove('hidden'); aInput.disabled = false; }
+        
+        if(!enableGlide) { glideRow.classList.add('hidden'); gInput.disabled = true; }
+        else { glideRow.classList.remove('hidden'); gInput.disabled = false; }
+
+        this.cachedTransforms = this.getBaseTransforms();
+        this.updateViewBounds();
         this.drawGuides();
         this.redrawAll();
     }
 
+    updateViewBounds(w=null, h=null) {
+        const width = w || this.width; const height = h || this.height;
+        const corners = [
+            this.getLatticeTransform(0,0), this.getLatticeTransform(width, 0),
+            this.getLatticeTransform(0, height), this.getLatticeTransform(width, height)
+        ];
+        this.viewBounds.uMin = Math.min(...corners.map(c=>c.u));
+        this.viewBounds.uMax = Math.max(...corners.map(c=>c.u));
+        this.viewBounds.vMin = Math.min(...corners.map(c=>c.v));
+        this.viewBounds.vMax = Math.max(...corners.map(c=>c.v));
+        this.viewBounds.rangeU = Math.ceil(this.viewBounds.uMax - this.viewBounds.uMin) + 2;
+        this.viewBounds.rangeV = Math.ceil(this.viewBounds.vMax - this.viewBounds.vMin) + 2;
+    }
+
     redrawAll(targetCtx = null, w = null, h = null) {
         const ctx = targetCtx || this.ctx;
-        const width = w || this.width;
-        const height = h || this.height;
+        const width = w || this.width; const height = h || this.height;
+        if(w && h) this.updateViewBounds(w, h); 
         
         if (!targetCtx) ctx.clearRect(0,0,width,height);
         
         this.drawings.forEach(d => {
-            ctx.strokeStyle = d.color;
-            ctx.lineWidth = d.width;
-            ctx.fillStyle = d.color;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
+            ctx.strokeStyle = d.color; ctx.lineWidth = d.width; ctx.fillStyle = d.color;
+            ctx.lineCap = 'round'; ctx.lineJoin = 'round';
             
             if (d.type === 'pen') {
-                for(let i=0; i<d.points.length-1; i++) {
-                    const p1 = this.getScreenPoint(d.points[i].u, d.points[i].v);
-                    const p2 = this.getScreenPoint(d.points[i+1].u, d.points[i+1].v);
-                    this.drawSymmetrySegment(p1, p2, ctx, width, height);
-                }
+                this.cachedTransforms.forEach(transform => {
+                    const tFirst = transform(d.points[0].u, d.points[0].v);
+                    const startK = Math.floor(this.viewBounds.uMin - tFirst[0]);
+                    const startR = Math.floor(this.viewBounds.vMin - tFirst[1]);
+
+                    for(let c = 0; c <= this.viewBounds.rangeU; c++) {
+                        for(let r = 0; r <= this.viewBounds.rangeV; r++) {
+                            const uShift = startK + c; const vShift = startR + r;
+                            
+                            ctx.beginPath();
+                            let p = this.getScreenPoint(tFirst[0] + uShift, tFirst[1] + vShift);
+                            ctx.moveTo(p.x, p.y);
+                            
+                            for(let i=1; i<d.points.length; i++) {
+                                const t = transform(d.points[i].u, d.points[i].v);
+                                p = this.getScreenPoint(t[0] + uShift, t[1] + vShift);
+                                ctx.lineTo(p.x, p.y);
+                            }
+                            ctx.stroke();
+                        }
+                    }
+                });
             } else {
-                const s = this.getScreenPoint(d.p1.u, d.p1.v);
-                const e = this.getScreenPoint(d.p2.u, d.p2.v);
-                const oldTool = this.tool;
-                this.tool = d.type;
-                this.drawShape(s, e, ctx, false, width, height);
+                const s_orig = d.p1; const e_orig = d.p2;
+                const oldTool = this.tool; this.tool = d.type;
+                
+                this.cachedTransforms.forEach(transform => {
+                    const t1 = transform(s_orig.u, s_orig.v);
+                    const t2 = transform(e_orig.u, e_orig.v);
+                    const startK = Math.floor(this.viewBounds.uMin - t1[0]);
+                    const startR = Math.floor(this.viewBounds.vMin - t1[1]);
+                    
+                    for(let c = 0; c <= this.viewBounds.rangeU; c++) {
+                        for(let r = 0; r <= this.viewBounds.rangeV; r++) {
+                            const s = this.getScreenPoint(t1[0] + startK + c, t1[1] + startR + r);
+                            const e = this.getScreenPoint(t2[0] + startK + c, t2[1] + startR + r);
+                            
+                            ctx.beginPath();
+                            if (this.tool === 'line') { ctx.moveTo(s.x, s.y); ctx.lineTo(e.x, e.y); }
+                            else if (this.tool === 'rect') { ctx.rect(s.x, s.y, e.x-s.x, e.y-s.y); }
+                            else if (this.tool === 'circle') { const rad = Math.hypot(e.x-s.x, e.y-s.y); ctx.arc(s.x, s.y, rad, 0, Math.PI*2); }
+                            ctx.stroke();
+                        }
+                    }
+                });
                 this.tool = oldTool;
             }
         });
+        
+        if(w && h) this.updateViewBounds(this.width, this.height);
     }
 
     getLatticeTransform(x, y) {
-        const s = this.scale;
-        const r = this.ratio;
         const rad = this.angle * Math.PI / 180;
-        const sin = Math.sin(rad);
-        const cos = Math.cos(rad);
-        const v = y / (s * r * sin);
-        const u = (x / s) - (v * r * cos);
+        const sin = Math.sin(rad); const cos = Math.cos(rad);
+        const v = y / (this.scale * this.ratio * sin);
+        const u = (x / this.scale) - (v * this.ratio * cos);
         return { u, v };
     }
 
     getScreenPoint(u, v) {
-        const s = this.scale;
-        const r = this.ratio;
         const rad = this.angle * Math.PI / 180;
-        const sin = Math.sin(rad);
-        const cos = Math.cos(rad);
-        const x = s*u + s*r*v*cos;
-        const y = s*r*v*sin;
+        const sin = Math.sin(rad); const cos = Math.cos(rad);
+        const x = this.scale*u + this.scale*this.ratio*v*cos;
+        const y = this.scale*this.ratio*v*sin;
         return { x, y };
     }
 
     getBaseTransforms() {
         const ops = [];
         const add = (fn) => ops.push(fn);
+        const g = this.glide; 
+        
         add((u,v) => [u,v]);
         switch(this.group) {
             case 'p1': break;
             case 'p2': add((u,v) => [-u, -v]); break;
             case 'pm': add((u,v) => [-u, v]); break; 
-            case 'pg': add((u,v) => [-u, v+0.5]); break;
+            case 'pg': add((u,v) => [-u, v+g]); break;
             case 'cm': add((u,v) => [-u, v]); add((u,v) => [u+0.5, v+0.5]); add((u,v) => [0.5-u, v+0.5]); break;
             case 'pmm': add((u,v) => [-u,v]); add((u,v) => [u,-v]); add((u,v) => [-u,-v]); break;
-            case 'pmg': add((u,v) => [-u,v]); add((u,v) => [u+0.5, -v]); add((u,v) => [0.5-u, -v]); break;
-            case 'pgg': add((u,v) => [-u,-v]); add((u,v) => [u+0.5, 0.5-v]); add((u,v) => [0.5-u, v+0.5]); break;
+            case 'pmg': add((u,v) => [-u,v]); add((u,v) => [u+g, -v]); add((u,v) => [g-u, -v]); break;
+            case 'pgg': add((u,v) => [-u,-v]); add((u,v) => [u+0.5, g-v]); add((u,v) => [0.5-u, v+g]); break;
             case 'cmm': 
                 add((u,v) => [-u,v]); add((u,v) => [u,-v]); add((u,v) => [-u,-v]);
                 add((u,v) => [u+0.5,v+0.5]); add((u,v) => [0.5-u,v+0.5]); add((u,v) => [u+0.5,0.5-v]); add((u,v) => [0.5-u,0.5-v]);
                 break;
-            case 'p4': 
-                add((u,v) => [-v,u]); add((u,v) => [-u,-v]); add((u,v) => [v,-u]);
-                break;
+            case 'p4': add((u,v) => [-v,u]); add((u,v) => [-u,-v]); add((u,v) => [v,-u]); break;
             case 'p4m': 
                 add((u,v) => [-v,u]); add((u,v) => [-u,-v]); add((u,v) => [v,-u]);
                 add((u,v) => [v,u]); add((u,v) => [-u,v]); add((u,v) => [-v,-u]); add((u,v) => [u,-v]);
                 break;
             case 'p4g': 
                 add((u,v) => [-v,u]); add((u,v) => [-u,-v]); add((u,v) => [v,-u]);
-                add((u,v) => [u+0.5, 0.5-v]); add((u,v) => [0.5-v, 0.5-u]); add((u,v) => [0.5-u, v+0.5]); add((u,v) => [v+0.5, u+0.5]);
+                add((u,v) => [u+0.5, g-v]); add((u,v) => [g-v, g-u]); add((u,v) => [g-u, v+g]); add((u,v) => [v+g, u+g]);
                 break;
-            case 'p3': 
-                add((u,v) => [-v, u+v]); add((u,v) => [-u-v, u]);
-                break;
+            case 'p3': add((u,v) => [-v, u+v]); add((u,v) => [-u-v, u]); break;
             case 'p3m1':
                 add((u,v) => [-v, u+v]); add((u,v) => [-u-v, u]);
                 add((u,v) => [v, u]); add((u,v) => [u+v, -v]); add((u,v) => [u, -u-v]);
                 break;
             case 'p31m':
                 add((u,v) => [-v, u+v]); add((u,v) => [-u-v, u]);
-                add((u,v) => [u, -v-u]); 
-                add((u,v) => [-v, -u]); 
-                add((u,v) => [-u-v, -v-(u+v)]);
+                add((u,v) => [u, -v-u]); add((u,v) => [-v, -u]); add((u,v) => [-u-v, -v-(u+v)]);
                 break;
             case 'p6':
                  add((u,v) => [-v, u+v]); add((u,v) => [-u-v, u]);
-                 add((u,v) => [-u, -v]); 
-                 add((u,v) => [v, -u-v]); add((u,v) => [u+v, -u]);
+                 add((u,v) => [-u, -v]); add((u,v) => [v, -u-v]); add((u,v) => [u+v, -u]);
                  break;
             case 'p6m':
                  add((u,v) => [-v, u+v]); add((u,v) => [-u-v, u]);
-                 add((u,v) => [-u, -v]); 
-                 add((u,v) => [v, -u-v]); add((u,v) => [u+v, -u]);
+                 add((u,v) => [-u, -v]); add((u,v) => [v, -u-v]); add((u,v) => [u+v, -u]);
                  add((u,v) => [v,u]); 
                  break;
         }
         
-        if(this.group === 'p31m') {
-            let p3 = [(u,v)=>[u,v], (u,v)=>[-v, u+v], (u,v)=>[-u-v, u]];
-            ops.length = 0;
-            p3.forEach(f => {
-                ops.push(f);
-                ops.push((u,v) => { let p=f(u,v); return [p[0], -p[1]-p[0]]; });
-            });
-        }
         if(this.group === 'p6m') {
-            let p6 = [
-                (u,v)=>[u,v], (u,v)=>[-v, u+v], (u,v)=>[-u-v, u],
-                (u,v)=>[-u,-v], (u,v)=>[v,-u-v], (u,v)=>[u+v,-u]
-            ];
-            ops.length = 0;
-            p6.forEach(f => {
+            const p6_ops = [];
+            const add6 = (f) => p6_ops.push(f);
+            add6((u,v)=>[u,v]); add6((u,v)=>[-v, u+v]); add6((u,v)=>[-u-v, u]);
+            add6((u,v)=>[-u,-v]); add6((u,v)=>[v, -u-v]); add6((u,v)=>[u+v, -u]);
+            
+            ops.length = 0; 
+            p6_ops.forEach(f => {
                 ops.push(f);
-                ops.push((u,v) => { let p=f(u,v); return [p[1], p[0]]; });
+                ops.push((u,v) => { const p=f(u,v); return [p[1], p[0]]; });
             });
         }
         return ops;
     }
 
     drawSymmetrySegment(p1, p2, ctx, w = null, h = null) {
-        const width = w || this.width;
-        const height = h || this.height;
-        
+        const width = w || this.width; const height = h || this.height;
+        if(w && h) this.updateViewBounds(w, h);
+
         const l1 = this.getLatticeTransform(p1.x, p1.y);
         const l2 = this.getLatticeTransform(p2.x, p2.y);
         
-        const corners = [
-            this.getLatticeTransform(0,0),
-            this.getLatticeTransform(width, 0),
-            this.getLatticeTransform(0, height),
-            this.getLatticeTransform(width, height)
-        ];
-        const uMin = Math.min(...corners.map(c=>c.u));
-        const uMax = Math.max(...corners.map(c=>c.u));
-        const vMin = Math.min(...corners.map(c=>c.v));
-        const vMax = Math.max(...corners.map(c=>c.v));
-        
-        const rangeU = Math.ceil(uMax - uMin) + 2;
-        const rangeV = Math.ceil(vMax - vMin) + 2;
-
-        const transforms = this.getBaseTransforms();
-        
         ctx.beginPath();
-        
-        transforms.forEach(transform => {
+        this.cachedTransforms.forEach(transform => {
             const t1 = transform(l1.u, l1.v);
             const t2 = transform(l2.u, l2.v);
+            const startK = Math.floor(this.viewBounds.uMin - t1[0]);
+            const startR = Math.floor(this.viewBounds.vMin - t1[1]);
             
-            const startK = Math.floor(uMin - t1[0]);
-            const startR = Math.floor(vMin - t1[1]);
-            
-            for(let c = 0; c <= rangeU; c++) {
-                for(let r = 0; r <= rangeV; r++) {
-                    const uShift = startK + c;
-                    const vShift = startR + r;
-                    
+            for(let c = 0; c <= this.viewBounds.rangeU; c++) {
+                for(let r = 0; r <= this.viewBounds.rangeV; r++) {
+                    const uShift = startK + c; const vShift = startR + r;
                     const s = this.getScreenPoint(t1[0] + uShift, t1[1] + vShift);
                     const e = this.getScreenPoint(t2[0] + uShift, t2[1] + vShift);
-                    
-                    ctx.moveTo(s.x, s.y);
-                    ctx.lineTo(e.x, e.y);
+                    ctx.moveTo(s.x, s.y); ctx.lineTo(e.x, e.y);
                 }
             }
         });
-        
         ctx.stroke();
+        if(w && h) this.updateViewBounds(this.width, this.height);
     }
 
     drawDot(p) {
         this.ctx.fillStyle = this.color;
-        const oldCap = this.ctx.lineCap;
-        this.ctx.lineCap = 'round';
-        this.ctx.lineWidth = this.lineWidth;
-        this.ctx.strokeStyle = this.color;
+        const oldCap = this.ctx.lineCap; this.ctx.lineCap = 'round';
+        this.ctx.lineWidth = this.lineWidth; this.ctx.strokeStyle = this.color;
         this.drawSymmetrySegment(p, p, this.ctx);
         this.ctx.lineCap = oldCap;
-    }
-
-    getSymmetricalPoints(p) {
-        const l = this.getLatticeTransform(p.x, p.y);
-        const corners = [
-            this.getLatticeTransform(0,0),
-            this.getLatticeTransform(this.width, 0),
-            this.getLatticeTransform(0, this.height),
-            this.getLatticeTransform(this.width, this.height)
-        ];
-        const uMin = Math.min(...corners.map(c=>c.u));
-        const uMax = Math.max(...corners.map(c=>c.u));
-        const vMin = Math.min(...corners.map(c=>c.v));
-        const vMax = Math.max(...corners.map(c=>c.v));
-        const rangeU = Math.ceil(uMax - uMin) + 2;
-        const rangeV = Math.ceil(vMax - vMin) + 2;
-        
-        const results = [];
-        const transforms = this.getBaseTransforms();
-        
-        transforms.forEach(transform => {
-            const t = transform(l.u, l.v);
-            const startK = Math.floor(uMin - t[0]);
-            const startR = Math.floor(vMin - t[1]);
-            
-            for(let c = 0; c <= rangeU; c++) {
-                for(let r = 0; r <= rangeV; r++) {
-                    results.push(this.getScreenPoint(t[0] + startK + c, t[1] + startR + r));
-                }
-            }
-        });
-        return results;
     }
 
     drawShapePreview(p1, p2) {
@@ -987,201 +909,95 @@ class WallpaperApp {
     }
 
     drawShape(p1, p2, ctx, isPreview=false, w=null, h=null) {
-        const width = w || this.width;
-        const height = h || this.height;
-        
+        const width = w || this.width; const height = h || this.height;
+        if(w && h) this.updateViewBounds(w, h);
+
         const l1 = this.getLatticeTransform(p1.x, p1.y);
         const l2 = this.getLatticeTransform(p2.x, p2.y);
-        
-        const corners = [
-            this.getLatticeTransform(0,0),
-            this.getLatticeTransform(width, 0),
-            this.getLatticeTransform(0, height),
-            this.getLatticeTransform(width, height)
-        ];
-        const uMin = Math.min(...corners.map(c=>c.u));
-        const uMax = Math.max(...corners.map(c=>c.u));
-        const vMin = Math.min(...corners.map(c=>c.v));
-        const vMax = Math.max(...corners.map(c=>c.v));
-        const rangeU = Math.ceil(uMax - uMin) + 2;
-        const rangeV = Math.ceil(vMax - vMin) + 2;
-
         if(isPreview) { ctx.strokeStyle = this.color; ctx.fillStyle = 'rgba(255,255,255,0.2)'; }
         
-        const transforms = this.getBaseTransforms();
-        
-        transforms.forEach(transform => {
+        this.cachedTransforms.forEach(transform => {
             const t1 = transform(l1.u, l1.v);
             const t2 = transform(l2.u, l2.v);
+            const startK = Math.floor(this.viewBounds.uMin - t1[0]);
+            const startR = Math.floor(this.viewBounds.vMin - t1[1]);
             
-            const startK = Math.floor(uMin - t1[0]);
-            const startR = Math.floor(vMin - t1[1]);
-            
-            for(let c = 0; c <= rangeU; c++) {
-                for(let r = 0; r <= rangeV; r++) {
-                    const uShift = startK + c;
-                    const vShift = startR + r;
-                    
+            for(let c = 0; c <= this.viewBounds.rangeU; c++) {
+                for(let r = 0; r <= this.viewBounds.rangeV; r++) {
+                    const uShift = startK + c; const vShift = startR + r;
                     const s = this.getScreenPoint(t1[0] + uShift, t1[1] + vShift);
                     const e = this.getScreenPoint(t2[0] + uShift, t2[1] + vShift);
                     
                     ctx.beginPath();
-                    if (this.tool === 'line') {
-                        ctx.moveTo(s.x, s.y); ctx.lineTo(e.x, e.y);
-                    }
-                    else if (this.tool === 'rect') {
-                        ctx.rect(s.x, s.y, e.x-s.x, e.y-s.y);
-                    }
-                    else if (this.tool === 'circle') {
-                        const rad = Math.hypot(e.x-s.x, e.y-s.y);
-                        ctx.arc(s.x, s.y, rad, 0, Math.PI*2);
-                    }
+                    if (this.tool === 'line') { ctx.moveTo(s.x, s.y); ctx.lineTo(e.x, e.y); }
+                    else if (this.tool === 'rect') { ctx.rect(s.x, s.y, e.x-s.x, e.y-s.y); }
+                    else if (this.tool === 'circle') { const rad = Math.hypot(e.x-s.x, e.y-s.y); ctx.arc(s.x, s.y, rad, 0, Math.PI*2); }
                     ctx.stroke();
                 }
             }
         });
+        if(w && h) this.updateViewBounds(this.width, this.height);
     }
 
     drawGuides() {
         const c = this.gCtx;
         c.clearRect(0, 0, this.width, this.height);
-        
         if (!this.showGuides) return;
+        c.lineWidth = 1; c.strokeStyle = getComputedStyle(document.body).getPropertyValue('--guide-color');
         
-        c.lineWidth = 1;
-        c.strokeStyle = getComputedStyle(document.body).getPropertyValue('--guide-color');
-        
-        const corners = [
-            this.getLatticeTransform(0,0),
-            this.getLatticeTransform(this.width, 0),
-            this.getLatticeTransform(0, this.height),
-            this.getLatticeTransform(this.width, this.height)
-        ];
-        const uMin = Math.floor(Math.min(...corners.map(c=>c.u)));
-        const uMax = Math.ceil(Math.max(...corners.map(c=>c.u)));
-        const vMin = Math.floor(Math.min(...corners.map(c=>c.v)));
-        const vMax = Math.ceil(Math.max(...corners.map(c=>c.v)));
+        const vb = this.viewBounds;
+        const uMin = Math.floor(vb.uMin); const uMax = Math.ceil(vb.uMax);
+        const vMin = Math.floor(vb.vMin); const vMax = Math.ceil(vb.vMax);
 
         c.beginPath();
         for(let u = uMin; u <= uMax; u++) {
-            const top = this.getScreenPoint(u, vMin);
-            const bot = this.getScreenPoint(u, vMax);
+            const top = this.getScreenPoint(u, vMin); const bot = this.getScreenPoint(u, vMax);
             c.moveTo(top.x, top.y); c.lineTo(bot.x, bot.y);
         }
         for(let v = vMin; v <= vMax; v++) {
-            const left = this.getScreenPoint(uMin, v);
-            const right = this.getScreenPoint(uMax, v);
+            const left = this.getScreenPoint(uMin, v); const right = this.getScreenPoint(uMax, v);
             c.moveTo(left.x, left.y); c.lineTo(right.x, right.y);
         }
         c.stroke();
         
         c.fillStyle = getComputedStyle(document.body).getPropertyValue('--region-color');
-        const p00 = this.getScreenPoint(0,0);
-        const p10 = this.getScreenPoint(1,0);
-        const p11 = this.getScreenPoint(1,1);
-        const p01 = this.getScreenPoint(0,1);
-        
-        c.beginPath();
-        c.moveTo(p00.x, p00.y);
-        
-        if (['p4m'].includes(this.group)) { 
-            c.lineTo(p10.x, p10.y); 
-            c.lineTo(this.getScreenPoint(0.5, 0.5).x, this.getScreenPoint(0.5, 0.5).y); 
-        }
-        else if (['p6m'].includes(this.group)) { 
-             const t1 = this.getScreenPoint(0.5, 0);
-             const t2 = this.getScreenPoint(1/3, 1/3);
-             c.lineTo(t1.x, t1.y); c.lineTo(t2.x, t2.y);
-        }
-        else if (['p6'].includes(this.group)) {
-             const t1 = this.getScreenPoint(1, 0);
-             const t2 = this.getScreenPoint(0, 1);
-             c.lineTo(t1.x, t1.y); c.lineTo(t2.x, t2.y);
-        }
-        else {
-             c.lineTo(p10.x, p10.y); c.lineTo(p11.x, p11.y); c.lineTo(p01.x, p01.y);
-        }
+        const p00 = this.getScreenPoint(0,0); const p10 = this.getScreenPoint(1,0);
+        const p11 = this.getScreenPoint(1,1); const p01 = this.getScreenPoint(0,1);
+        c.beginPath(); c.moveTo(p00.x, p00.y);
+        if (['p4m'].includes(this.group)) { c.lineTo(p10.x, p10.y); c.lineTo(this.getScreenPoint(0.5, 0.5).x, this.getScreenPoint(0.5, 0.5).y); }
+        else if (['p6m'].includes(this.group)) { const t1 = this.getScreenPoint(0.5, 0); const t2 = this.getScreenPoint(1/3, 1/3); c.lineTo(t1.x, t1.y); c.lineTo(t2.x, t2.y); }
+        else if (['p6'].includes(this.group)) { const t1 = this.getScreenPoint(1, 0); const t2 = this.getScreenPoint(0, 1); c.lineTo(t1.x, t1.y); c.lineTo(t2.x, t2.y); }
+        else { c.lineTo(p10.x, p10.y); c.lineTo(p11.x, p11.y); c.lineTo(p01.x, p01.y); }
         c.fill();
 
         const drawMarker = (u, v, type) => {
-            const p = this.getScreenPoint(u, v);
-            c.fillStyle = '#fff';
-            c.beginPath();
-            const s = 4;
-            if (type === 2) { 
-                c.moveTo(p.x, p.y-s); c.lineTo(p.x+s, p.y); c.lineTo(p.x, p.y+s); c.lineTo(p.x-s, p.y);
-            } else if (type === 3) { 
-                c.moveTo(p.x, p.y-s); c.lineTo(p.x+s, p.y+s); c.lineTo(p.x-s, p.y+s);
-            } else if (type === 4) { 
-                c.rect(p.x-s, p.y-s, s*2, s*2);
-            } else if (type === 6) { 
-                for(let i=0; i<6; i++) {
-                    const ang = i * Math.PI / 3;
-                    c.lineTo(p.x + s*Math.cos(ang), p.y + s*Math.sin(ang));
-                }
-            }
+            const p = this.getScreenPoint(u, v); c.fillStyle = '#fff'; c.beginPath(); const s = 4;
+            if (type === 2) { c.moveTo(p.x, p.y-s); c.lineTo(p.x+s, p.y); c.lineTo(p.x, p.y+s); c.lineTo(p.x-s, p.y); }
+            else if (type === 3) { c.moveTo(p.x, p.y-s); c.lineTo(p.x+s, p.y+s); c.lineTo(p.x-s, p.y+s); }
+            else if (type === 4) { c.rect(p.x-s, p.y-s, s*2, s*2); }
+            else if (type === 6) { for(let i=0; i<6; i++) { const ang = i * Math.PI / 3; c.lineTo(p.x + s*Math.cos(ang), p.y + s*Math.sin(ang)); } }
             c.fill();
         };
-
         const drawLine = (u1, v1, u2, v2, dashed) => {
-            const p1 = this.getScreenPoint(u1, v1);
-            const p2 = this.getScreenPoint(u2, v2);
-            c.beginPath();
-            c.strokeStyle = '#fff';
-            c.setLineDash(dashed ? [6, 4] : []);
-            c.lineWidth = 1.5;
-            c.moveTo(p1.x, p1.y); c.lineTo(p2.x, p2.y);
-            c.stroke();
-            c.setLineDash([]);
+            const p1 = this.getScreenPoint(u1, v1); const p2 = this.getScreenPoint(u2, v2);
+            c.beginPath(); c.strokeStyle = '#fff'; c.setLineDash(dashed ? [6, 4] : []); c.lineWidth = 1.5;
+            c.moveTo(p1.x, p1.y); c.lineTo(p2.x, p2.y); c.stroke(); c.setLineDash([]);
         };
 
-        const uStart = uMin - 1; const uEnd = uMax + 1;
-        const vStart = vMin - 1; const vEnd = vMax + 1;
+        const g = this.glide;
+        if (['pm', 'pmm', 'pmg', 'cmm', 'p4m', 'p6m'].includes(this.group)) { for(let u=uMin; u<=uMax; u+=0.5) drawLine(u, vMin, u, vMax, false); }
+        if (['pmm', 'cmm', 'p4m'].includes(this.group)) { for(let v=vMin; v<=vMax; v+=0.5) drawLine(uMin, v, uMax, v, false); }
+        if (['pg', 'pmg', 'pgg', 'p4g'].includes(this.group)) { for(let u=uMin+0.5; u<=uMax; u+=1) drawLine(u, vMin, u, vMax, true); }
 
-        if (['pm', 'pmm', 'pmg', 'cmm', 'p4m', 'p6m'].includes(this.group)) {
-             for(let u=uStart; u<=uEnd; u+=0.5) drawLine(u, vStart, u, vEnd, false);
-        }
-        if (['pmm', 'cmm', 'p4m'].includes(this.group)) {
-             for(let v=vStart; v<=vEnd; v+=0.5) drawLine(uStart, v, uEnd, v, false);
-        }
-        if (['pg', 'pmg', 'pgg', 'p4g'].includes(this.group)) {
-             for(let u=uStart+0.5; u<=uEnd; u+=1) drawLine(u, vStart, u, vEnd, true);
-        }
-
-        for(let u=uStart; u<=uEnd; u++) {
-            for(let v=vStart; v<=vEnd; v++) {
-                if (['p2', 'pmm', 'cmm', 'pmg', 'pgg'].includes(this.group)) {
-                    drawMarker(u, v, 2);
-                    drawMarker(u+0.5, v+0.5, 2);
-                    if(this.group !== 'p2') {
-                        drawMarker(u+0.5, v, 2);
-                        drawMarker(u, v+0.5, 2);
-                    }
-                }
-                if (['p4', 'p4m', 'p4g'].includes(this.group)) {
-                    drawMarker(u, v, 4);
-                    drawMarker(u+0.5, v+0.5, 4);
-                    if(this.group === 'p4m') {
-                        drawMarker(u+0.5, v, 2);
-                        drawMarker(u, v+0.5, 2);
-                    }
-                }
-                if (['p3', 'p3m1', 'p31m', 'p6', 'p6m'].includes(this.group)) {
-                     const isP6 = ['p6', 'p6m'].includes(this.group);
-                     drawMarker(u, v, isP6 ? 6 : 3);
-                     if(isP6) {
-                         drawMarker(u+1/3, v+1/3, 3);
-                         drawMarker(u+2/3, v+2/3, 3);
-                         drawMarker(u+0.5, v, 2);
-                         drawMarker(u, v+0.5, 2);
-                         drawMarker(u+0.5, v+0.5, 2);
-                     } else {
-                         drawMarker(u+1/3, v+1/3, 3);
-                         drawMarker(u+2/3, v+2/3, 3);
-                     }
-                }
+        for(let u=uMin; u<=uMax; u++) { for(let v=vMin; v<=vMax; v++) {
+            if (['p2', 'pmm', 'cmm', 'pmg', 'pgg'].includes(this.group)) { drawMarker(u, v, 2); drawMarker(u+0.5, v+0.5, 2); if(this.group !== 'p2') { drawMarker(u+0.5, v, 2); drawMarker(u, v+0.5, 2); } }
+            if (['p4', 'p4m', 'p4g'].includes(this.group)) { drawMarker(u, v, 4); drawMarker(u+0.5, v+0.5, 4); if(this.group === 'p4m') { drawMarker(u+0.5, v, 2); drawMarker(u, v+0.5, 2); } }
+            if (['p3', 'p3m1', 'p31m', 'p6', 'p6m'].includes(this.group)) {
+                 const isP6 = ['p6', 'p6m'].includes(this.group); drawMarker(u, v, isP6 ? 6 : 3);
+                 if(isP6) { drawMarker(u+1/3, v+1/3, 3); drawMarker(u+2/3, v+2/3, 3); drawMarker(u+0.5, v, 2); drawMarker(u, v+0.5, 2); drawMarker(u+0.5, v+0.5, 2); }
+                 else { drawMarker(u+1/3, v+1/3, 3); drawMarker(u+2/3, v+2/3, 3); }
             }
-        }
+        }}
     }
 
     saveState() {
@@ -1215,39 +1031,16 @@ class WallpaperApp {
     }
     
     downloadTile() {
-        // Calculate Seamless Repeat Unit dimensions
         let w, h;
         const hexGroups = ['p3', 'p3m1', 'p31m', 'p6', 'p6m'];
         const isHex = hexGroups.includes(this.group);
+        if(isHex) { w = this.scale; h = this.scale * Math.sqrt(3); } 
+        else { w = this.scale; h = this.scale * this.ratio; }
         
-        if(isHex) {
-            // For hexagonal groups, a rectangular tile that repeats seamlessly 
-            // generally covers a width of s and a height of s * sqrt(3).
-            // This includes 2 staggered rows.
-            w = this.scale;
-            h = this.scale * Math.sqrt(3);
-        } else {
-            // For rectangular/square, it's just the unit cell.
-            // If angle is not 90, this rectangle won't tile seamlessly!
-            // But for standard use (90 deg), it's perfect.
-            w = this.scale;
-            h = this.scale * this.ratio;
-        }
-        
-        const t = document.createElement('canvas'); 
-        t.width = w; t.height = h;
-        const tx = t.getContext('2d'); 
-        
-        tx.fillStyle = '#050505'; 
-        tx.fillRect(0, 0, w, h);
-        
-        // Render the scene onto this small canvas
+        const t = document.createElement('canvas'); t.width = w; t.height = h;
+        const tx = t.getContext('2d'); tx.fillStyle = '#050505'; tx.fillRect(0, 0, w, h);
         this.redrawAll(tx, w, h);
-        
-        const link = document.createElement('a');
-        link.download = 'azulejo.png';
-        link.href = t.toDataURL(); 
-        link.click();
+        const link = document.createElement('a'); link.download = 'azulejo.png'; link.href = t.toDataURL(); link.click();
     }
 }
 
