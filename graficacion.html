@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Árboles: La Belleza Algorítmica de las Plantas — Jose Julian Parra Virgen</title>
+
+    <link rel="icon" type="image/png" href="favicon.png">
+
+    <meta name="description" content="Visualizador interactivo de L-Systems que recrea el crecimiento de estructuras botánicas y fractales mediante Sistemas de Lindenmayer. Proyecto de Graficación - UABC 2025.">
+    <meta name="keywords" content="L-Systems, Lindenmayer, fractales, árboles, plantas, OpenGL, graficación, visualización, algoritmos, botánica algorítmica">
+    <meta name="author" content="Jose Julian Parra Virgen">
+    <meta name="robots" content="index, follow">
+
+    <meta property="og:title" content="Árboles: La Belleza Algorítmica de las Plantas">
+    <meta property="og:description" content="Visualizador interactivo de L-Systems que recrea el crecimiento de estructuras botánicas y fractales mediante Sistemas de Lindenmayer.">
+    <meta property="og:image" content="images/screenshot-cerezo.webp">
+    <meta property="og:type" content="website">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Árboles: La Belleza Algorítmica de las Plantas">
+    <meta name="twitter:description" content="Visualizador interactivo de L-Systems que recrea el crecimiento de estructuras botánicas y fractales.">
+    <meta name="twitter:image" content="images/screenshot-cerezo.webp">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+
+    <style>
+        :root {
+            --bg-color: #050505;
+            --text-primary: #f5f5f7;
+            --text-secondary: #b0b0b5;
+            --accent: #ffffff;
+            --font-sans: 'Inter', sans-serif;
+            --font-serif: 'Playfair Display', serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html, body {
+            background-color: var(--bg-color);
+            font-family: var(--font-sans);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100%;
+            width: 100%;
+        }
+
+        .slideshow {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-color);
+            padding: 50px 70px;
+            display: none;
+            flex-direction: column;
+            opacity: 0;
+            transition: opacity 0.4s ease-in-out;
+            overflow: hidden;
+            background-image:
+                radial-gradient(circle at 10% 20%, rgba(255, 255, 255, 0.02) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(255, 255, 255, 0.015) 0%, transparent 40%);
+        }
+
+        .slide.active {
+            display: flex;
+            opacity: 1;
+            z-index: 1;
+        }
+
+        h1 {
+            font-family: var(--font-serif);
+            font-size: 90px;
+            font-weight: 400;
+            font-style: italic;
+            margin: 0;
+            line-height: 1;
+            background: linear-gradient(to bottom, #fff, #999);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        h2 {
+            font-family: var(--font-sans);
+            font-size: 44px;
+            font-weight: 300;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin: 0 0 35px 0;
+            border-left: 2px solid var(--accent);
+            padding-left: 25px;
+        }
+
+        h3 {
+            font-family: var(--font-serif);
+            font-size: 28px;
+            font-style: italic;
+            color: var(--accent);
+            margin-bottom: 18px;
+        }
+
+        p, li {
+            font-size: 22px;
+            line-height: 1.6;
+            color: var(--text-secondary);
+            font-weight: 300;
+        }
+
+        ul { padding-left: 0; list-style: none; }
+        li { margin-bottom: 14px; position: relative; padding-left: 25px; }
+        li::before { content: '—'; position: absolute; left: 0; color: var(--accent); }
+
+        strong { color: var(--text-primary); font-weight: 500; }
+        code { background: rgba(255,255,255,0.1); padding: 3px 8px; border-radius: 4px; font-size: 20px; }
+
+        .layout-split {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 50px;
+            height: 100%;
+            align-items: center;
+        }
+
+        .layout-grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+            flex: 1;
+            align-items: stretch;
+        }
+
+        .layout-grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+            flex: 1;
+        }
+
+        .layout-center {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            text-align: center;
+        }
+
+        .slide-number {
+            position: absolute;
+            bottom: 30px;
+            right: 40px;
+            font-size: 16px;
+            color: #333;
+            letter-spacing: 0.1em;
+        }
+
+        .section-tag {
+            position: absolute;
+            top: 35px;
+            right: 40px;
+            font-size: 13px;
+            color: #444;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+        }
+
+        .glass-card {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.06);
+            padding: 28px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .art-frame {
+            width: 100%;
+            height: 100%;
+            max-height: 480px;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: #000;
+        }
+
+        .art-frame img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.95;
+        }
+
+        .caption {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            color: #fff;
+            background: rgba(0,0,0,0.7);
+            padding: 6px 12px;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        pre[class*="language-"] {
+            background: rgba(0,0,0,0.6) !important;
+            border: 1px solid #333;
+            margin: 0 !important;
+            font-size: 13px !important;
+            max-height: none;
+            overflow: visible;
+            line-height: 1.4;
+        }
+
+        .math-block {
+            margin: 25px 0;
+            font-size: 1.4em;
+            text-align: center;
+            color: #fff;
+        }
+
+        .quote {
+            font-family: var(--font-serif);
+            font-style: italic;
+            font-size: 26px;
+            color: var(--text-primary);
+            border-left: 2px solid #444;
+            padding-left: 25px;
+            margin: 25px 0;
+        }
+
+        .quote-author {
+            font-family: var(--font-sans);
+            font-size: 16px;
+            color: #666;
+            margin-top: 12px;
+            font-style: normal;
+        }
+
+        .small { font-size: 18px; }
+        .xsmall { font-size: 16px; color: #666; }
+    </style>
+</head>
+<body>
+
+    <div class="slideshow" id="slideshow">
+
+        <div class="slide active" data-slide="1">
+            <div class="section-tag">Portada</div>
+            <div class="slide-number">1 / 22</div>
+
+            <div style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:-1; opacity:0.12;">
+                <img src="images/screenshot-main.webp" alt="Fondo" style="width:100%; height:100%; object-fit:cover;">
+            </div>
+
+            <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: center;">
+                <p style="text-transform: uppercase; letter-spacing: 0.25em; font-size: 16px; margin-bottom: 25px; color: #555;">Proyecto Final — Graficación 2025</p>
+                <h1>Árboles</h1>
+                <h1 style="font-size: 52px; font-family: var(--font-sans); font-style: normal; margin-top: 5px; opacity: 0.75;">La Belleza Algorítmica de las Plantas</h1>
+                <p style="margin-top: 35px; max-width: 700px; font-size: 24px;">Un visualizador interactivo que recrea el crecimiento de estructuras botánicas y fractales mediante Sistemas de Lindenmayer (L-Systems).</p>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; border-top: 1px solid #333; padding-top: 25px;">
+                <div>
+                    <p style="margin: 0; font-size: 20px; color: #fff;">Jose Julian Parra Virgen</p>
+                    <p style="margin: 0; font-size: 18px; color: #666;">Universidad Autónoma de Baja California (UABC)</p>
+                </div>
+                <div style="text-align: right;">
+                    <p style="margin: 0; font-size: 18px; color: #666;">C++ / OpenGL 3.3 Core</p>
+                    <p style="margin: 0; font-size: 18px; color: #666;">Visualización Generativa</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-slide="2">
+            <div class="section-tag">Contenido</div>
+            <div class="slide-number">2 / 22</div>
+
+            <h2>Contenido de la Presentación</h2>
+            <div class="layout-grid-2" style="margin-top: 20px;">
+                <div class="glass-card">
+                    <h3>a) Descripción General</h3>
+                    <p>Qué es el proyecto, objetivos y alcance del visualizador de L-Systems.</p>
+                </div>
+                <div class="glass-card">
+                    <h3>b) Funcionalidades Desarrolladas</h3>
+                    <p>Motor L-System, Turtle Graphics 3D, renderizado instanciado, interfaz ImGui.</p>
+                </div>
+                <div class="glass-card">
+                    <h3>c) Funcionalidades No Logradas</h3>
+                    <p>Justificación de características pendientes y razones técnicas.</p>
+                </div>
+                <div class="glass-card">
+                    <h3>d) Tecnologías Utilizadas</h3>
+                    <p>Stack tecnológico: C++17, OpenGL, GLFW, GLM, Dear ImGui.</p>
+                </div>
+                <div class="glass-card">
+                    <h3>e) Pre-requisitos e Instalación</h3>
+                    <p>Dependencias del sistema y comandos de compilación.</p>
+                </div>
+                <div class="glass-card">
+                    <h3>f) Galería / g) Referencias</h3>
+                    <p>Demostración visual y bibliografía académica.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-slide="3">
+            <div class="section-tag">a) Descripción General</div>
+            <div class="slide-number">3 / 22</div>
+
+            <div class="layout-split">
+                <div>
+                    <h2>¿Qué es este Proyecto?</h2>
+                    <p><strong>"Árboles: La Belleza Algorítmica de las Plantas"</strong> es un visualizador interactivo que recrea el crecimiento de estructuras botánicas y fractales mediante <strong>Sistemas de Lindenmayer (L-Systems)</strong>.</p>
+                    <p style="margin-top: 25px;">Inspirado directamente en el libro <em>"The Algorithmic Beauty of Plants"</em> de Prusinkiewicz & Lindenmayer (1990), el proyecto toma axiomas y reglas de producción para generar cadenas que describen estados evolutivos de una planta digital.</p>
+                    <p style="margin-top: 25px;">Estas cadenas son interpretadas por un motor de <strong>Turtle Graphics 3D</strong> que dibuja ramas, hojas y decoraciones en OpenGL 3.3 Core Profile.</p>
+                </div>
+                <div class="art-frame">
+                    <img src="images/screenshot-3d-tree.webp" alt="Árbol 3D">
+                    <div class="caption">Estructura Arbórea 3D</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-slide="4">
+            <div class="section-tag">a) Descripción General</div>
+            <div class="slide-number">4 / 22</div>
+
+            <h2>Objetivos del Proyecto</h2>
+            <div class="layout-grid-3" style="margin-top: 25px;">
+                <div class="glass-card">
+                    <h3>Educativo</h3>
+                    <p>Demostrar cómo <strong>reglas simples</strong> pueden derivar en complejidad natural. Una herramienta para entender la conexión entre matemáticas y biología.</p>
+                </div>
+                <div class="glass-card">
+                    <h3>Técnico</h3>
+                    <p>Implementar un pipeline gráfico moderno con <strong>instanced rendering</strong>, shaders procedurales y rotaciones 3D estables usando la fórmula de Rodrigues.</p>
+                </div>
+                <div class="glass-card">
+                    <h3>Interactivo</h3>
+                    <p>Permitir al usuario <strong>modificar axiomas, reglas y parámetros</strong> en tiempo real, observando inmediatamente cómo variaciones mínimas producen morfologías distintas.</p>
+                </div>
+            </div>
+            <div class="quote" style="margin-top: 40px;">
+                "La naturaleza no se preocupa por las fórmulas... pero las obedece perfectamente."
+                <div class="quote-author">— Adaptado de The Algorithmic Beauty of Plants</div>
+            </div>
+        </div>
+
+        <div class="slide" data-slide="5">
+            <div class="section-tag">Fundamentos Teóricos</div>
+            <div class="slide-number">5 / 22</div>
+
+            <div class="layout-split">
+                <div>
+                    <h2>Aristid Lindenmayer (1968)</h2>
+                    <p>El biólogo húngaro <strong>Aristid Lindenmayer</strong> trabajaba en la Universidad de Utrecht estudiando el crecimiento de algas y hongos filamentosos como la cianobacteria <em>Anabaena catenula</em>.</p>
+                    <p style="margin-top: 25px;">Buscando un modelo formal para describir el desarrollo celular, creó un sistema de <strong>reescritura paralela de cadenas</strong> que eventualmente llevaría su nombre: los <strong>L-Systems</strong>.</p>
+                    <p style="margin-top: 25px;">Posteriormente, <strong>Przemysław Prusinkiewicz</strong> extendió el modelo para describir plantas superiores y estructuras ramificadas complejas, culminando en el libro <em>"The Algorithmic Beauty of Plants"</em> (1990).</p>
+                </div>
+                <div class="art-frame">
+                    <img src="images/abop-cover.webp" alt="The Algorithmic Beauty of Plants">
+                    <div class="caption">Prusinkiewicz & Lindenmayer, 1990</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-slide="6">
+            <div class="section-tag">Fundamentos Teóricos</div>
+            <div class="slide-number">6 / 22</div>
+
+            <div class="layout-split">
+                <div>
+                    <h2>Gramáticas Formales</h2>
+                    <p>Un <strong>L-System</strong> es un tipo de gramática formal y sistema de reescritura paralela. A diferencia de las gramáticas de Chomsky, <strong>todas las reglas se aplican simultáneamente</strong> en cada iteración.</p>
+
+                    <div class="math-block">
+                        \[ G = \langle V, \omega, P \rangle \]
+                    </div>
+
+                    <ul style="margin-top: 30px;">
+                        <li><strong>\(V\)</strong> — Alfabeto de símbolos (variables y constantes)</li>
+                        <li><strong>\(\omega\)</strong> — Axioma: la cadena inicial o "semilla"</li>
+                        <li><strong>\(P\)</strong> — Conjunto de reglas de producción</li>
+                    </ul>
+
+                    <p style="margin-top: 25px;">La naturaleza <strong>recursiva</strong> produce autosimilitud, haciendo que formas fractales emerjan naturalmente.</p>
+                </div>
+                <div class="glass-card" style="justify-content: center; background: transparent; border: none;">
+                    <h3 style="font-family: var(--font-sans); font-size: 16px; text-transform: uppercase; color: #555;">Ejemplo: Algas de Lindenmayer</h3>
+                    <pre><code class="language-cpp">n=0: A
+n=1: AB
+n=2: ABA
+n=3: ABAAB
+n=4: ABAABABA
+n=5: ABAABABAABAAB</code></pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-slide="7">
+            <div class="section-tag">b) Funcionalidades Desarrolladas</div>
+            <div class="slide-number">7 / 22</div>
+
+            <div class="layout-split">
+                <div>
+                    <h2>Motor L-System Determinístico</h2>
+                    <p>El corazón del sistema es un ciclo de <strong>reescritura paralela</strong> implementado en <code>src/lsystem/LSystem.cpp</code>.</p>
+                    <ul style="margin-top: 25px;">
+                        <li>Carga axiomas y reglas dinámicamente desde la UI</li>
+                        <li>Control de generaciones (0-10+ iteraciones)</li>
+                        <li>Expansión exponencial: \( |S_n| = O(k^n) \)</li>
+                        <li>Separación de lógica botánica y renderizado</li>
+                    </ul>
+                    <p style="margin-top: 25px;">La expansión ocurre <strong>completamente en memoria</strong> antes de dibujar un solo píxel.</p>
+                </div>
+                <div class="glass-card" style="padding: 0; border: none;">
+                    <pre><code class="language-cpp">void LSystem::generate(int generations) {
+    currentString = axiom;
+    currentGeneration = 0;
+    for (int gen = 0; gen < generations; gen++) {
+        std::string nextString;
+        // Reescritura paralela
+        for (char symbol : currentString) {
+            auto it = rules.find(symbol);
+            if (it != rules.end())
+                nextString += it->second;
+            else
+                nextString += symbol; // Identidad
+        }
+        currentString = nextString;
+        currentGeneration++;
+    }
+}</code></pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-slide="8">
+            <div class="section-tag">b) Funcionalidades Desarrolladas</div>
+            <div class="slide-number">8 / 22</div>
+
+            <h2>Turtle Graphics 3D</h2>
+            <div class="layout-grid-3" style="margin-top: 20px;">
+                <div class="glass-card">
+                    <h3>Estado de la Tortuga</h3>
+                    <p>Un cursor invisible con <strong>posición</strong> \((x,y,z)\), <strong>orientación</strong> (heading, left, up) y <strong>grosor</strong> del trazo.</p>
+                    <p style="margin-top: 15px;">Cada <code>F</code> dibuja hacia adelante según el vector heading.</p>
+                </div>
+                <div class="glass-card">
+                    <h3>Pila de Estados (Stack)</h3>
+                    <p>Los corchetes <code>[</code> y <code>]</code> implementan una <strong>pila LIFO</strong> para guardar/restaurar estado.</p>
+                    <p style="margin-top: 15px;">Esto permite la <strong>ramificación</strong>: explorar una rama y volver al punto de bifurcación.</p>
+                </div>
+                <div class="glass-card">
+                    <h3>Rotaciones 3D (Rodrigues)</h3>
+                    <p>La tortuga gira sobre <strong>ejes locales</strong> evitando gimbal lock:</p>
+                    <div style="margin-top:15px; font-size: 18px; text-align: center;">
+                        \[ R(v, \theta) = v \cos\theta + (k \times v) \sin\theta \]
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top: 30px; display: flex; gap: 15px; flex-wrap: wrap; justify-content: center;">
+                <code style="padding: 10px 18px; font-size: 18px;">F → Avanzar dibujando</code>
+                <code style="padding: 10px 18px; font-size: 18px;">+ - → Yaw (giro horizontal)</code>
+                <code style="padding: 10px 18px; font-size: 18px;">& ^ → Pitch (cabeceo)</code>
+                <code style="padding: 10px 18px; font-size: 18px;">\ / → Roll</code>
+            </div>
+        </div>
+
+        <div class="slide" data-slide="9">
+            <div class="section-tag">b) Funcionalidades Desarrolladas</div>
+            <div class="slide-number">9 / 22</div>
+
+            <div class="layout-split">
+                <div>
+                    <h2>Renderizado en OpenGL</h2>
+                    <h3 style="margin-top: 30px;">Instanced Rendering</h3>
+                    <p>Miles de cilindros dibujados con <strong>una sola draw call</strong>. Enviamos a la GPU:</p>
+                    <ul style="margin-top: 15px;">
+                        <li>Posición inicial y final de cada segmento</li>
+                        <li>Radio en cada extremo (interpolación)</li>
+                        <li>Color de la rama</li>
+                    </ul>
+
+                    <h3 style="margin-top: 30px;">Shaders Procedurales</h3>
+                    <p>Hojas y flores generadas con <strong>Signed Distance Functions (SDF)</strong> en el fragment shader. Sin texturas externas.</p>
+
+                    <h3 style="margin-top: 30px;">Iluminación</h3>
+                    <p>Modelo <strong>Blinn-Phong</strong> con rim lighting para resaltar siluetas.</p>
+                </div>
+                <div class="art-frame">
+                    <img src="images/screenshot-pino-detail.webp" alt="Detalle de Geometría">
+                    <div class="caption">Geometría Instanciada</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-slide="10">
+            <div class="section-tag">b) Funcionalidades Desarrolladas</div>
+            <div class="slide-number">10 / 22</div>
+
+            <div class="layout-split" style="gap: 0;">
+                <div style="padding-right: 50px;">
+                    <h2>Interfaz Interactiva</h2>
+                    <p>Implementada con <strong>Dear ImGui</strong> en <code>src/ui/UI.cpp</code>:</p>
+                    <ul style="margin-top: 25px;">
+                        <li>Edición de axioma y reglas en tiempo real</li>
+                        <li>Control de ángulo (0°-180°) y generaciones (0-10)</li>
+                        <li>Selector de colores para ramas y hojas</li>
+                        <li>Modo líneas vs cilindros</li>
+                        <li><strong>12 presets botánicos</strong>: Pino, Roble, Sauce, Helecho, Dragón, Koch, Hilbert...</li>
+                        <li>Estadísticas: longitud de cadena, nº de ramas, FPS</li>
+                    </ul>
+                    <h3 style="margin-top: 30px;">Cámara Orbital</h3>
+                    <p>Arrastrar con mouse para rotar, scroll para zoom. Coordenadas esféricas convertidas a matrices view.</p>
+                </div>
+                <div class="art-frame" style="max-height: 100%;">
+                    <img src="images/Screenshot_20251126_223735.webp" alt="Interfaz del Visualizador" style="object-fit: contain;">
+                    <div class="caption">Panel de Control ImGui</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-slide="11">
+            <div class="section-tag">c) Funcionalidades No Logradas</div>
+            <div class="slide-number">11 / 22</div>
+
+            <h2>Justificación de Limitaciones</h2>
+            <div class="layout-grid-3" style="margin-top: 25px;">
+                <div class="glass-card">
+                    <h3>Flores Volumétricas</h3>
+                    <p>El motor interpreta <code>K</code> para flores, pero usa <strong>billboards planos</strong>.</p>
+                    <p style="margin-top: 15px;"><strong>Razón:</strong> Pétalos volumétricos requieren parches bicúbicos y un pipeline de mallas adicional. Se priorizó estabilizar la ramificación y el renderizado instanciado.</p>
+                </div>
+                <div class="glass-card">
+                    <h3>L-Systems Contextuales</h3>
+                    <p>Solo se implementó <strong>D0L determinístico</strong>, no IL/CL-Systems sensibles al contexto.</p>
+                    <p style="margin-top: 15px;"><strong>Razón:</strong> Parser más complejo y UI diferente para especificar vecindades. Se decidió mantener la interacción accesible para la presentación.</p>
+                </div>
+                <div class="glass-card">
+                    <h3>Exportación Integrada</h3>
+                    <p>La captura existe vía scripts externos (<code>stb_image_write.h</code>).</p>
+                    <p style="margin-top: 15px;"><strong>Razón:</strong> Tiempo invertido en depurar los 12 presets y estabilizar el renderizador. Un botón de exportación en la UI queda para una versión futura.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-slide="12">
+            <div class="section-tag">d) Tecnologías Utilizadas</div>
+            <div class="slide-number">12 / 22</div>
+
+            <h2>Stack Tecnológico</h2>
+            <div class="layout-grid-3" style="margin-top: 25px;">
+                <div class="glass-card">
+                    <h3>Lenguaje & Build</h3>
+                    <ul>
+                        <li><strong>C++17</strong> — STL moderno, RAII</li>
+                        <li><strong>Clang</strong> — Compilador</li>
+                        <li><strong>Makefile</strong> — Build system</li>
+                        <li>Flags: <code>-O3 -march=native</code></li>
+                    </ul>
+                </div>
+                <div class="glass-card">
+                    <h3>Gráficos</h3>
+                    <ul>
+                        <li><strong>OpenGL 3.3</strong> — Core Profile</li>
+                        <li><strong>GLFW3</strong> — Ventana y eventos</li>
+                        <li><strong>GLAD</strong> — Loader OpenGL</li>
+                        <li><strong>GLM</strong> — Matemáticas 3D</li>
+                    </ul>
+                </div>
+                <div class="glass-card">
+                    <h3>UI & Extras</h3>
+                    <ul>
+                        <li><strong>Dear ImGui</strong> — Interfaz inmediata</li>
+                        <li><strong>stb_image</strong> — Captura</li>
+                        <li>Shaders GLSL</li>
+                        <li>Blinn-Phong + Rim</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-slide="13">
+            <div class="section-tag">e) Pre-requisitos e Instalación</div>
+            <div class="slide-number">13 / 22</div>
+
+            <div class="layout-split">
+                <div>
+                    <h2>Compilación del Proyecto</h2>
+                    <h3 style="margin-top: 30px;">Dependencias (Ubuntu/Debian)</h3>
+                    <pre style="background: rgba(0,0,0,0.5); padding: 20px; border: 1px solid #333; margin-top: 15px;"><code class="language-bash">sudo apt install build-essential clang \
+    libglfw3-dev libglm-dev</code></pre>
+
+                    <h3 style="margin-top: 30px;">Compilación</h3>
+                    <pre style="background: rgba(0,0,0,0.5); padding: 20px; border: 1px solid #333; margin-top: 15px;"><code class="language-bash">cd /home/julianparra/arbol
+make</code></pre>
+
+                    <h3 style="margin-top: 30px;">Ejecución</h3>
+                    <pre style="background: rgba(0,0,0,0.5); padding: 20px; border: 1px solid #333; margin-top: 15px;"><code class="language-bash">./arboles</code></pre>
+                </div>
+                <div>
+                    <h3>Controles</h3>
+                    <ul style="margin-top: 20px;">
+                        <li><strong>Mouse izquierdo + arrastrar</strong> — Rotar cámara</li>
+                        <li><strong>Scroll</strong> — Zoom in/out</li>
+                        <li><strong>ESC</strong> — Salir</li>
+                        <li><strong>Panel ImGui</strong> — Modificar parámetros</li>
+                    </ul>
+
+                    <h3 style="margin-top: 40px;">Estructura del Proyecto</h3>
+                    <pre style="background: rgba(0,0,0,0.5); padding: 20px; border: 1px solid #333; margin-top: 15px; font-size: 16px;"><code>src/
+├── main.cpp
+├── lsystem/
+│   ├── LSystem.cpp/.h
+│   └── TurtleGraphics.cpp/.h
+├── rendering/
+│   ├── Camera.cpp/.h
+│   └── Shader.cpp/.h
+└── ui/
+    └── UI.cpp/.h</code></pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-slide="14">
+            <div class="section-tag">f) Galería</div>
+            <div class="slide-number">14 / 22</div>
+
+            <h2 style="margin-bottom: 25px;">Curvas y Fractales Clásicos</h2>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; flex: 1;">
+                <div class="art-frame">
+                    <img src="images/screenshot-dragon.webp" alt="Curva del Dragón">
+                    <div class="caption">Curva del Dragón</div>
+                </div>
+                <div class="art-frame">
+                    <img src="images/screenshot-koch.webp" alt="Curva de Koch">
+                    <div class="caption">Copo de Koch</div>
+                </div>
+                <div class="art-frame">
+                    <img src="images/screenshot-sierpinski.webp" alt="Sierpinski">
+                    <div class="caption">Triángulo de Sierpinski</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-slide="15">
+            <div class="section-tag">f) Galería</div>
+            <div class="slide-number">15 / 22</div>
+
+            <h2 style="margin-bottom: 25px;">Estructuras Botánicas 3D</h2>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; flex: 1;">
+                <div class="art-frame">
+                    <img src="images/screenshot-pino.webp" alt="Pino 3D">
+                    <div class="caption">Pino 3D</div>
+                </div>
+                <div class="art-frame">
+                    <img src="images/screenshot-roble.webp" alt="Roble">
+                    <div class="caption">Roble</div>
+                </div>
+                <div class="art-frame">
+                    <img src="images/screenshot-sauce.webp" alt="Sauce">
+                    <div class="caption">Sauce Llorón</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-slide="16">
+            <div class="section-tag">f) Galería</div>
+            <div class="slide-number">16 / 22</div>
+
+            <h2 style="margin-bottom: 25px;">Diversidad Morfológica</h2>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; flex: 1;">
+                <div class="art-frame">
+                    <img src="images/screenshot-cerezo.webp" alt="Cerezo">
+                    <div class="caption">Cerezo en Flor</div>
+                </div>
+                <div class="art-frame">
+                    <img src="images/screenshot-bonsai.webp" alt="Bonsai">
+                    <div class="caption">Bonsái</div>
+                </div>
+                <div class="art-frame">
+                    <img src="images/screenshot-palmera.webp" alt="Palmera">
+                    <div class="caption">Palmera</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-slide="17">
+            <div class="section-tag">f) Galería</div>
+            <div class="slide-number">17 / 22</div>
+
+            <div class="layout-split">
+                <div>
+                    <h2>Evolución por Generaciones</h2>
+                    <p>Cada incremento en el número de generaciones produce una cadena exponencialmente más larga y una estructura visualmente más compleja.</p>
+                    <p style="margin-top: 25px;">Esto simula el <strong>crecimiento natural</strong>: desde una semilla simple hasta un organismo complejo, siguiendo las mismas reglas inmutables.</p>
+                    <div style="margin-top: 30px;">
+                        <h3>Secuencia de Crecimiento</h3>
+                        <div style="display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap;">
+                            <img src="images/growth_01.webp" style="width: 90px; height: 90px; object-fit: cover; border: 1px solid #333;" alt="Gen 1">
+                            <img src="images/growth_02.webp" style="width: 90px; height: 90px; object-fit: cover; border: 1px solid #333;" alt="Gen 2">
+                            <img src="images/growth_03.webp" style="width: 90px; height: 90px; object-fit: cover; border: 1px solid #333;" alt="Gen 3">
+                            <img src="images/growth_04.webp" style="width: 90px; height: 90px; object-fit: cover; border: 1px solid #333;" alt="Gen 4">
+                            <img src="images/growth_05.webp" style="width: 90px; height: 90px; object-fit: cover; border: 1px solid #333;" alt="Gen 5">
+                        </div>
+                    </div>
+                </div>
+                <div class="art-frame">
+                    <img src="images/growth.gif" alt="Animación de Crecimiento">
+                    <div class="caption">Crecimiento Animado</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-slide="18">
+            <div class="section-tag">f) Galería</div>
+            <div class="slide-number">18 / 22</div>
+
+            <h2>Ejemplos de Reglas (Presets)</h2>
+            <div class="layout-grid-2" style="margin-top: 25px;">
+                <div class="glass-card">
+                    <h3>Pino 3D</h3>
+                    <code style="display: block; margin: 12px 0; padding: 15px; background: rgba(0,0,0,0.4); font-size: 18px;">
+                        Axioma: A<br>
+                        A → F[&FLL!A]/////[&FLL!A]///////[&FLL!A]<br>
+                        Ángulo: 22.5°, Gen: 6
+                    </code>
+                    <p class="small">Los símbolos <code>&</code> (pitch) y <code>/</code> (roll) crean la distribución radial de ramas.</p>
+                </div>
+                <div class="glass-card">
+                    <h3>Curva del Dragón</h3>
+                    <code style="display: block; margin: 12px 0; padding: 15px; background: rgba(0,0,0,0.4); font-size: 18px;">
+                        Axioma: FX<br>
+                        X → X+YF+, Y → −FX−Y<br>
+                        Ángulo: 90°
+                    </code>
+                    <p class="small">Atribuida a Davis y Knuth (1970), llena el plano de forma fractal.</p>
+                </div>
+                <div class="glass-card">
+                    <h3>Planta Fractal (ABOP)</h3>
+                    <code style="display: block; margin: 12px 0; padding: 15px; background: rgba(0,0,0,0.4); font-size: 18px;">
+                        Axioma: X<br>
+                        X → F+[[X]-X]-F[-FX]+X, F → FF<br>
+                        Ángulo: 25°
+                    </code>
+                    <p class="small">Clásico del libro que produce estructuras tipo helecho.</p>
+                </div>
+                <div class="glass-card">
+                    <h3>Hilbert (Space-Filling)</h3>
+                    <code style="display: block; margin: 12px 0; padding: 15px; background: rgba(0,0,0,0.4); font-size: 18px;">
+                        Axioma: X<br>
+                        X → −YF+XFX+FY−, Y → +XF−YFY−FX+<br>
+                        Ángulo: 90°
+                    </code>
+                    <p class="small">Curva de llenado de espacio de David Hilbert (1891).</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-slide="19">
+            <div class="section-tag">Implementación</div>
+            <div class="slide-number">19 / 22</div>
+
+            <div class="layout-split">
+                <div>
+                    <h2>Interpretación Geométrica</h2>
+                    <p>Cada símbolo se traduce a una operación geométrica. Los comandos <code>F, G, A, B</code> dibujan segmentos.</p>
+                    <p style="margin-top: 25px;">La <strong>pila de estados</strong> es fundamental: <code>[</code> guarda (push) y <code>]</code> restaura (pop), permitiendo ramificación.</p>
+                    <p style="margin-top: 25px;">El <strong>width decay</strong> reduce el grosor en cada nivel, creando ramas que adelgazan hacia las puntas.</p>
+                </div>
+                <div class="glass-card" style="padding: 0; border: none;">
+                    <pre><code class="language-cpp">case 'F': case 'G': case 'A': case 'B': {
+    glm::vec3 endPos = m_currentState.position
+        + m_currentState.heading * m_stepSize;
+    BranchData branch{};
+    branch.start = m_currentState.position;
+    branch.end = endPos;
+    branch.radiusStart = m_currentState.width;
+    branch.radiusEnd = m_currentState.width * m_widthDecay;
+    m_branches.push_back(branch);
+    m_currentState.position = endPos;
+    break;
+}
+case '[': {
+    m_stateStack.push(m_currentState);
+    m_currentState.depth++;
+    m_currentState.width *= m_widthDecay;
+    break;
+}
+case ']': {
+    if (!m_stateStack.empty()) {
+        m_currentState = m_stateStack.top();
+        m_stateStack.pop();
+    }
+    break;
+}</code></pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-slide="20">
+            <div class="section-tag">g) Referencias</div>
+            <div class="slide-number">20 / 22</div>
+
+            <h2>Bibliografía</h2>
+            <div class="layout-split" style="margin-top: 30px; align-items: start;">
+                <div>
+                    <h3>Textos Fundamentales</h3>
+                    <ul style="font-size: 20px;">
+                        <li><strong>Prusinkiewicz, P., & Lindenmayer, A.</strong> (1990). <em>The Algorithmic Beauty of Plants</em>. Springer-Verlag.</li>
+                        <li><strong>Lindenmayer, A.</strong> (1968). "Mathematical models for cellular interactions in development". <em>J. Theoretical Biology</em>, 18(3), 280-315.</li>
+                        <li><strong>Foley, van Dam, Feiner, Hughes</strong> (1990). <em>Computer Graphics: Principles and Practice</em>. Addison-Wesley.</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3>Recursos Técnicos</h3>
+                    <ul style="font-size: 20px;">
+                        <li><strong>Quílez, I.</strong> — Distance Functions & Procedural Shading. <em>iquilezles.org</em></li>
+                        <li><strong>OpenGL ARB</strong> (2010). OpenGL 3.3 Core Profile Specification.</li>
+                        <li><strong>Paul Bourke</strong> — L-System User Notes. <em>paulbourke.net</em></li>
+                        <li><strong>Algorithmic Botany</strong> — University of Calgary. <em>algorithmicbotany.org</em></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-slide="21">
+            <div class="section-tag">Demostración</div>
+            <div class="slide-number">21 / 22</div>
+
+            <div class="layout-center">
+                <h1 style="font-size: 80px;">Demo en Vivo</h1>
+                <div style="margin-top: 50px; display: flex; gap: 30px;">
+                    <div class="art-frame" style="width: 200px; height: 200px;">
+                        <img src="images/screenshot-pino.webp" alt="Pino">
+                    </div>
+                    <div class="art-frame" style="width: 200px; height: 200px;">
+                        <img src="images/screenshot-dragon.webp" alt="Dragón">
+                    </div>
+                    <div class="art-frame" style="width: 200px; height: 200px;">
+                        <img src="images/screenshot-roble.webp" alt="Roble">
+                    </div>
+                </div>
+                <p style="margin-top: 40px; font-size: 20px; color: #666;">
+                    Visualizar axiomas, reglas, ángulos y observar los cambios instantáneamente.
+                </p>
+            </div>
+        </div>
+
+        <div class="slide" data-slide="22">
+            <div class="section-tag">Fin</div>
+            <div class="slide-number">22 / 22</div>
+
+            <div class="layout-split" style="align-items: center;">
+                <div style="display: flex; flex-direction: column; align-items: center; text-align: center;">
+                    <h1 style="font-size: 70px;">Conclusión</h1>
+                    <p style="margin-top: 30px; max-width: 550px; font-size: 26px; color: #fff;">
+                        Desde reglas simples emerge la complejidad de la naturaleza.
+                    </p>
+                    <p style="margin-top: 20px; max-width: 500px; font-size: 20px;">
+                        Los L-Systems demuestran que la belleza de las plantas puede ser capturada y recreada mediante algoritmos.
+                    </p>
+                    <div style="margin-top: 40px; border-top: 1px solid #333; padding-top: 25px;">
+                        <p style="font-size: 18px; letter-spacing: 0.2em; text-transform: uppercase; color: #fff;">Gracias</p>
+                        <p style="font-size: 16px; color: #888; margin-top: 10px;">Jose Julian Parra Virgen</p>
+                        <p style="font-size: 14px; color: #555; margin-top: 5px;">Graficación — UABC 2025</p>
+                    </div>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: center; text-align: center;">
+                    <div style="background: #fff; padding: 15px; border-radius: 8px;">
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https://github.com/julianparra1/arboles/" alt="QR Code GitHub" style="width: 180px; height: 180px; display: block;">
+                    </div>
+                    <p style="margin-top: 20px; font-size: 14px; color: #888; text-transform: uppercase; letter-spacing: 0.1em;">Código Fuente</p>
+                    <a href="https://github.com/julianparra1/arboles/" target="_blank" style="margin-top: 10px; font-size: 18px; color: #fff; text-decoration: none; border-bottom: 1px solid #555; padding-bottom: 2px;">
+                        github.com/julianparra1/arboles
+                    </a>
+                    <div style="margin-top: 30px; width: 100px; height: 140px; border: 1px solid #333; overflow: hidden;">
+                        <img src="images/abop-cover.webp" style="width:100%; height:100%; object-fit:cover;" alt="Libro ABOP">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-c.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-cpp.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script>
+        let currentSlide = 1;
+        const totalSlides = 22;
+
+        document.addEventListener("DOMContentLoaded", function() {
+            if (typeof renderMathInElement !== 'undefined') {
+                renderMathInElement(document.body, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false},
+                        {left: '\\(', right: '\\)', display: false},
+                        {left: '\\[', right: '\\]', display: true}
+                    ],
+                    throwOnError: false
+                });
+            }
+            updateSlide();
+        });
+
+        function changeSlide(direction) {
+            const newSlide = currentSlide + direction;
+            if (newSlide >= 1 && newSlide <= totalSlides) {
+                currentSlide = newSlide;
+                updateSlide();
+            }
+        }
+
+        function goToSlide(n) {
+            if (n >= 1 && n <= totalSlides) {
+                currentSlide = n;
+                updateSlide();
+            }
+        }
+
+        function updateSlide() {
+            document.querySelectorAll('.slide').forEach(slide => {
+                slide.classList.remove('active');
+            });
+
+            const activeSlide = document.querySelector(`.slide[data-slide="${currentSlide}"]`);
+            if (activeSlide) {
+                activeSlide.classList.add('active');
+            }
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            switch(e.key) {
+                case 'ArrowRight':
+                case 'ArrowDown':
+                case ' ':
+                case 'PageDown':
+                case 'Enter':
+                    e.preventDefault();
+                    changeSlide(1);
+                    break;
+                case 'ArrowLeft':
+                case 'ArrowUp':
+                case 'PageUp':
+                case 'Backspace':
+                    e.preventDefault();
+                    changeSlide(-1);
+                    break;
+                case 'Home':
+                    e.preventDefault();
+                    goToSlide(1);
+                    break;
+                case 'End':
+                    e.preventDefault();
+                    goToSlide(totalSlides);
+                    break;
+            }
+        });
+
+        // Click navigation
+        document.addEventListener('click', function(e) {
+            const rect = document.body.getBoundingClientRect();
+            const x = e.clientX;
+            if (x > rect.width / 2) {
+                changeSlide(1);
+            } else {
+                changeSlide(-1);
+            }
+        });
+    </script>
+</body>
+</html>
