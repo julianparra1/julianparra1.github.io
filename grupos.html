@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>17: La Simetría Plana — Jose Julian Parra Virgen</title>
+
+    <link rel="icon" type="image/png" href="favicon.png">
+
+    <meta name="description" content="Clasificación de los 17 Grupos de Papel Tapiz (Wallpaper Groups). Estructura algebraica, notación Hermann-Mauguin y ejemplos históricos de teselados.">
+    <meta name="keywords" content="wallpaper groups, grupos de papel tapiz, simetría, teselados, isometrías, cristalografía, Alhambra, Escher, teoría de grupos">
+    <meta name="author" content="Jose Julian Parra Virgen">
+    <meta name="robots" content="index, follow">
+
+    <meta property="og:title" content="17: La Simetría Plana — Wallpaper Groups">
+    <meta property="og:description" content="Clasificación de los 17 Grupos de Papel Tapiz. Estructura algebraica y notación de los grupos de simetría plana.">
+    <meta property="og:image" content="images/alhambra-cm-5.jpg">
+    <meta property="og:type" content="website">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="17: La Simetría Plana — Wallpaper Groups">
+    <meta name="twitter:description" content="Clasificación de los 17 Grupos de Papel Tapiz. Estructura algebraica y notación.">
+    <meta name="twitter:image" content="images/alhambra-cm-5.jpg">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
+
+    <style>
+        :root {
+            --bg-color: #050505;
+            --text-primary: #f5f5f7;
+            --text-secondary: #b0b0b5;
+            --accent: #ffffff;
+            --highlight: #ffcc00;
+            --font-sans: 'Inter', sans-serif;
+            --font-serif: 'Playfair Display', serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html, body {
+            background-color: var(--bg-color);
+            font-family: var(--font-sans);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100%;
+            width: 100%;
+        }
+
+        .slideshow {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-color);
+            padding: 50px 70px;
+            display: none;
+            flex-direction: column;
+            opacity: 0;
+            transition: opacity 0.4s ease-in-out;
+            overflow: hidden;
+        }
+
+        .slide::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.035;
+            /* Escher-style interlocking tessellation pattern */
+            background-image: 
+                /* Fish/bird-like interlocking shapes */
+                linear-gradient(135deg, transparent 25%, #fff 25%, #fff 26%, transparent 26%),
+                linear-gradient(225deg, transparent 25%, #fff 25%, #fff 26%, transparent 26%),
+                linear-gradient(315deg, transparent 25%, #fff 25%, #fff 26%, transparent 26%),
+                linear-gradient(45deg, transparent 25%, #fff 25%, #fff 26%, transparent 26%),
+                /* Curved interlocking elements */
+                radial-gradient(circle at 0% 50%, transparent 40%, #fff 40%, #fff 42%, transparent 42%),
+                radial-gradient(circle at 100% 50%, transparent 40%, #fff 40%, #fff 42%, transparent 42%),
+                radial-gradient(circle at 50% 0%, transparent 40%, #fff 40%, #fff 42%, transparent 42%),
+                radial-gradient(circle at 50% 100%, transparent 40%, #fff 40%, #fff 42%, transparent 42%),
+                /* Diagonal wave lines */
+                repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.3) 10px, rgba(255,255,255,0.3) 11px),
+                repeating-linear-gradient(-45deg, transparent, transparent 10px, rgba(255,255,255,0.3) 10px, rgba(255,255,255,0.3) 11px);
+            background-size: 60px 60px, 60px 60px, 60px 60px, 60px 60px, 60px 60px, 60px 60px, 60px 60px, 60px 60px, 120px 120px, 120px 120px;
+            background-position: 0 0, 30px 0, 30px 30px, 0 30px, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0;
+        }
+
+        /* Remove background from title slide */
+        .slide[data-slide="1"]::before {
+            display: none;
+        }
+
+        .slide.active {
+            display: flex;
+            opacity: 1;
+            z-index: 1;
+        }
+
+        h1 {
+            font-family: var(--font-serif);
+            font-size: 90px;
+            font-weight: 400;
+            font-style: italic;
+            margin: 0;
+            line-height: 1;
+            background: linear-gradient(to bottom, #fff, #999);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        h2 {
+            font-family: var(--font-sans);
+            font-size: 44px;
+            font-weight: 300;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin: 0 0 35px 0;
+            border-left: 2px solid var(--accent);
+            padding-left: 25px;
+        }
+
+        h3 {
+            font-family: var(--font-serif);
+            font-size: 28px;
+            font-style: italic;
+            color: var(--accent);
+            margin-bottom: 18px;
+        }
+
+        p, li {
+            font-size: 22px;
+            line-height: 1.6;
+            color: var(--text-secondary);
+            font-weight: 300;
+        }
+
+        ul, ol { padding-left: 0; list-style: none; }
+        li { margin-bottom: 14px; position: relative; padding-left: 25px; }
+        li::before { content: '—'; position: absolute; left: 0; color: var(--accent); }
+        ol li { counter-increment: item; }
+        ol li::before { content: counter(item) '.'; font-weight: 500; }
+
+        strong { color: var(--text-primary); font-weight: 500; }
+        code { background: rgba(255,255,255,0.1); padding: 3px 8px; border-radius: 4px; font-size: 20px; }
+        em { font-style: italic; color: var(--text-primary); }
+
+        .layout-split {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 50px;
+            height: 100%;
+            align-items: center;
+        }
+
+        .layout-grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+            flex: 1;
+            align-items: stretch;
+        }
+
+        .layout-grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+            flex: 1;
+        }
+
+        .layout-grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            flex: 1;
+        }
+
+        .layout-center {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            text-align: center;
+        }
+
+        .slide-number {
+            position: absolute;
+            bottom: 30px;
+            right: 40px;
+            font-size: 16px;
+            color: #333;
+            letter-spacing: 0.1em;
+        }
+
+        .section-tag {
+            position: absolute;
+            top: 35px;
+            right: 40px;
+            font-size: 13px;
+            color: #444;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+        }
+
+        .glass-card {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.06);
+            padding: 28px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .art-frame {
+            width: 100%;
+            height: 100%;
+            max-height: 480px;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: #000;
+        }
+
+        .art-frame img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            opacity: 0.95;
+            background: #fff;
+        }
+
+        .caption {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            color: #fff;
+            background: rgba(0,0,0,0.7);
+            padding: 6px 12px;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .math-block {
+            margin: 25px 0;
+            font-size: 1.4em;
+            text-align: center;
+            color: #fff;
+        }
+
+        .quote {
+            font-family: var(--font-serif);
+            font-style: italic;
+            font-size: 26px;
+            color: var(--text-primary);
+            border-left: 2px solid #444;
+            padding-left: 25px;
+            margin: 25px 0;
+        }
+
+        .quote-author {
+            font-family: var(--font-sans);
+            font-size: 16px;
+            color: #666;
+            margin-top: 12px;
+            font-style: normal;
+        }
+
+        .small { font-size: 18px; }
+        .xsmall { font-size: 16px; color: #666; }
+
+        .notation-display {
+            font-size: 72px;
+            font-weight: bold;
+            letter-spacing: 0.1em;
+            margin: 30px 0;
+        }
+
+        .highlight-yellow { color: #ffcc00; }
+        .highlight-cyan { color: #00bcd4; }
+        .highlight-magenta { color: #e040fb; }
+        .highlight-orange { color: #ff9800; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            padding: 15px 20px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        th {
+            color: var(--text-primary);
+            font-weight: 500;
+            text-transform: uppercase;
+            font-size: 14px;
+            letter-spacing: 0.1em;
+        }
+
+        td {
+            color: var(--text-secondary);
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="slideshow" id="slideshow">
+
+        <div class="slide active" data-slide="1">
+            <div class="section-tag">Portada</div>
+            <div class="slide-number">1 / 17</div>
+
+            <div style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:-1; opacity:0.15;">
+                <img src="images/background_title.png" alt="Fondo" style="width:100%; height:100%; object-fit:cover;">
+            </div>
+
+            <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: center;">
+                <p style="text-transform: uppercase; letter-spacing: 0.25em; font-size: 16px; margin-bottom: 25px; color: #555;">Teoría de Grupos — 2025</p>
+                <h1>Wallpaper Groups</h1>
+                <h1 style="font-size: 52px; font-family: var(--font-sans); font-style: normal; margin-top: 5px; opacity: 0.75;">Estructura Algebraica y Notación</h1>
+                <p style="margin-top: 35px; max-width: 700px; font-size: 24px;">Clasificación de los 17 grupos de simetría plana que describen todos los patrones periódicos posibles en el plano.</p>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; border-top: 1px solid #333; padding-top: 25px;">
+                <div>
+                    <p style="margin: 0; font-size: 20px; color: #fff;">Jose Julian Parra Virgen</p>
+                    <p style="margin: 0; font-size: 18px; color: #666;">Teoría de Grupos</p>
+                </div>
+                <div style="text-align: right;">
+                    <p style="margin: 0; font-size: 18px; color: #666;">17: La Simetría Plana</p>
+                    <p style="margin: 0; font-size: 18px; color: #666;">Clasificación de Grupos de Papel Tapiz</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-slide="2">
+            <div class="section-tag">Fundamentos</div>
+            <div class="slide-number">2 / 17</div>
+
+            <h2>1. El Grupo Euclidiano \(E(2)\)</h2>
+            <div class="layout-split" style="margin-top: 15px;">
+                <div>
+                    <p>Un <strong>Wallpaper Group</strong> es un subgrupo discreto \(G \le E(2)\) con dos traslaciones linealmente independientes.</p>
+
+                    <h3 style="margin-top: 25px;">Estructura de \(E(2)\)</h3>
+                    <p style="font-size: 18px;">Un elemento de \(E(2)\) es un par \((v, M)\) donde \(v \in \mathbb{R}^2\) y \(M \in O(2)\):</p>
+                    <div class="math-block" style="font-size: 1.2em;">
+                        \[ f(x) = Mx + v \]
+                    </div>
+                    <p style="font-size: 17px; margin-top: 10px;">La composición define el <strong>producto semidirecto</strong>:</p>
+                    <div class="math-block" style="font-size: 1.1em;">
+                        \[ E(2) = \mathbb{R}^2 \rtimes O(2) \]
+                    </div>
+                    <p class="small" style="margin-top: 10px;">\((v_1, M_1) \circ (v_2, M_2) = (v_1 + M_1 v_2, M_1 M_2)\)</p>
+                </div>
+                <div class="glass-card">
+                    <h3>Las 4 Isometrías del Plano</h3>
+                    <ul style="margin-top: 15px; font-size: 17px;">
+                        <li><strong>Traslación</strong> — \(T_v(x) = x + v\)<br><span class="xsmall">det\(M\)=1, sin puntos fijos</span></li>
+                        <li><strong>Rotación</strong> — \(R_{\theta, c}\)<br>
+                        <span class="xsmall">\(M = \begin{pmatrix} \cos\theta & -\sin\theta \\ \sin\theta & \cos\theta \end{pmatrix}\)</span></li>
+                        <li><strong>Reflexión</strong> — \(\sigma_L\)<br><span class="xsmall">det\(M\)=-1, fija la recta \(L\)</span></li>
+                        <li><strong>Deslizamiento</strong> — \(g_{L,v} = T_v \circ \sigma_L\)<br><span class="xsmall">\(g^2 = T_{2v}\) (traslación pura)</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-slide="3">
+            <div class="section-tag">Teorema Central</div>
+            <div class="slide-number">3 / 17</div>
+
+            <h2>2. Teorema de Restricción Cristalográfica</h2>
+            <div class="layout-split" style="margin-top: 15px;">
+                <div>
+                    <h3>Demostración (Traza Matricial)</h3>
+                    <p style="font-size: 17px; margin-top: 12px;">Sea \(\{e_1, e_2\}\) base del retículo \(L\). La rotación \(R\) mapea vectores del retículo a vectores del retículo, así que su matriz tiene <strong>entradas enteras</strong>.</p>
+
+                    <p style="font-size: 17px; margin-top: 15px;">La traza es invariante bajo cambio de base:</p>
+                    <div class="math-block" style="margin: 20px 0;">
+                        \[ \text{Tr}(M) = 2\cos\theta \in \mathbb{Z} \]
+                    </div>
+
+                    <p style="font-size: 17px;">Como \(|\cos\theta| \leq 1\), entonces \(2\cos\theta \in \{-2,-1,0,1,2\}\)</p>
+
+                    <table style="margin-top: 20px; font-size: 15px;">
+                        <tr><th>\(2\cos\theta\)</th><th>\(\theta\)</th><th>Orden \(n\)</th></tr>
+                        <tr><td>2</td><td>0°</td><td>1</td></tr>
+                        <tr><td>1</td><td>60°</td><td>6</td></tr>
+                        <tr><td>0</td><td>90°</td><td>4</td></tr>
+                        <tr><td>-1</td><td>120°</td><td>3</td></tr>
+                        <tr><td>-2</td><td>180°</td><td>2</td></tr>
+                    </table>
+                </div>
+                <div class="glass-card" style="justify-content: flex-start;">
+                    <h3>¿Por qué no \(n=5\)?</h3>
+                    <p style="font-size: 17px; margin-top: 15px;">Para \(\theta = 72°\):</p>
+                    <div class="math-block" style="font-size: 1.1em;">
+                        \[ 2\cos(72°) = \frac{\sqrt{5}-1}{2} \approx 0.618 \]
+                    </div>
+                    <p style="font-size: 17px; margin-top: 15px;"><strong>No es entero</strong> → Contradice la condición de retículo.</p>
+                    
+                    <div style="margin-top: 25px; text-align: center;">
+                        <div style="font-size: 70px;">⬠</div>
+                        <p class="xsmall" style="margin-top: 10px;">Los cuasicristales (teselados de Penrose) tienen simetría local de orden 5, pero <strong>no son periódicos</strong>.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-slide="4">
+            <div class="section-tag">Notación</div>
+            <div class="slide-number">4 / 17</div>
+
+            <h2>3. Notación Hermann-Mauguin (IUCr)</h2>
+            <div class="layout-center" style="padding-top: 20px;">
+                <div class="notation-display">
+                    <span class="highlight-yellow">p</span><span class="highlight-cyan">4</span><span class="highlight-magenta">g</span><span class="highlight-orange">m</span>
+                </div>
+
+                <div class="layout-grid-4" style="margin-top: 30px; width: 100%;">
+                    <div class="glass-card" style="text-align: center;">
+                        <h3 class="highlight-yellow" style="font-family: var(--font-sans); font-style: normal;">Celda</h3>
+                        <p><strong>p</strong>: Primitiva</p>
+                        <p><strong>c</strong>: Centrada (rómbica)</p>
+                        <p class="xsmall" style="margin-top: 8px;">Indica el tipo de retículo</p>
+                    </div>
+                    <div class="glass-card" style="text-align: center;">
+                        <h3 class="highlight-cyan" style="font-family: var(--font-sans); font-style: normal;">Rotación</h3>
+                        <p>Orden máximo \(n\):</p>
+                        <p><strong>1, 2, 3, 4, 6</strong></p>
+                        <p class="xsmall" style="margin-top: 8px;">(Restricción cristalográfica)</p>
+                    </div>
+                    <div class="glass-card" style="text-align: center;">
+                        <h3 class="highlight-magenta" style="font-family: var(--font-sans); font-style: normal;">Eje Principal</h3>
+                        <p><strong>m</strong>: Espejo (mirror)</p>
+                        <p><strong>g</strong>: Deslizamiento (glide)</p>
+                        <p class="xsmall" style="margin-top: 8px;">Perpendicular a \(\vec{a}\)</p>
+                    </div>
+                    <div class="glass-card" style="text-align: center;">
+                        <h3 class="highlight-orange" style="font-family: var(--font-sans); font-style: normal;">Eje Secundario</h3>
+                        <p><strong>m</strong>, <strong>g</strong>, o <strong>1</strong></p>
+                        <p class="xsmall" style="margin-top: 8px;">A 45° (cuad.) o 30° (hex.)</p>
+                    </div>
+                </div>
+                <p class="small" style="margin-top: 25px; color: #888;">Ejemplos: <code>p1</code> (solo traslación), <code>pm</code> = p1m1 (espejos paralelos), <code>p6m</code> (simetría máxima hexagonal)</p>
+            </div>
+        </div>
+
+        <div class="slide" data-slide="5">
+            <div class="section-tag">Notación</div>
+            <div class="slide-number">5 / 17</div>
+
+            <h2>4. Notación Orbifold (Conway-Thurston)</h2>
+            <div class="layout-split" style="margin-top: 15px;">
+                <div>
+                    <p style="font-size: 17px;">La notación orbifold describe el espacio cociente \(\mathbb{R}^2 / G\) — una superficie con singularidades.</p>
+                    
+                    <table style="margin-top: 20px; font-size: 16px;">
+                        <tr><th>Símbolo</th><th>Significado</th><th>Costo</th></tr>
+                        <tr><td><strong>\(\circ\)</strong></td><td>Asa (traslación pura)</td><td>2</td></tr>
+                        <tr><td><strong>\(*\)</strong></td><td>Frontera espejo</td><td>1</td></tr>
+                        <tr><td><strong>\(\times\)</strong></td><td>Cross-cap (deslizamiento)</td><td>1</td></tr>
+                        <tr><td><strong>\(n\)</strong></td><td>Punto cónico orden \(n\)</td><td>\(\frac{n-1}{n}\)</td></tr>
+                        <tr><td><strong>\(n\) tras \(*\)</strong></td><td>Esquina en frontera</td><td>\(\frac{n-1}{2n}\)</td></tr>
+                    </table>
+                </div>
+                <div class="glass-card">
+                    <h3>El "Teorema Mágico"</h3>
+                    <p style="font-size: 17px; margin-top: 15px;">Para cualquier grupo de papel tapiz, la suma de costos es exactamente:</p>
+                    <div class="math-block" style="font-size: 1.8em; margin: 20px 0;">
+                        \[ \sum \text{costos} = 2 \]
+                    </div>
+                    <p style="font-size: 16px;">Este valor viene de la característica de Euler \(\chi = 2\) de la esfera.</p>
+                    
+                    <h3 style="margin-top: 20px;">Ejemplo: p6 \((632)\)</h3>
+                    <div class="math-block" style="font-size: 1em;">
+                        \[ \frac{5}{6} + \frac{2}{3} + \frac{1}{2} = \frac{5+4+3}{6} = 2 \; \checkmark \]
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-slide="6">
+            <div class="section-tag">Visualización</div>
+            <div class="slide-number">6 / 17</div>
+
+            <h2>4. Diagramas de Simetría</h2>
+            <p class="small" style="margin-bottom: 20px;">Cada grupo tiene un diagrama que muestra sus elementos de simetría: centros de rotación, ejes de reflexión y ejes de deslizamiento.</p>
+
+            <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 15px; flex: 1; justify-items: center; align-items: start;">
+                <div style="text-align: center;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/d/d7/Wallpaper_group_diagram_p1.svg" alt="p1" style="width: 110px; height: auto; background: rgba(255,255,255,0.9); border-radius: 6px; padding: 8px;">
+                    <p class="xsmall" style="margin-top: 8px;">p1</p>
+                </div>
+                <div style="text-align: center;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/c/ce/Wallpaper_group_diagram_p2_square.svg" alt="p2" style="width: 110px; height: auto; background: rgba(255,255,255,0.9); border-radius: 6px; padding: 8px;">
+                    <p class="xsmall" style="margin-top: 8px;">p2</p>
+                </div>
+                <div style="text-align: center;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/7/7e/Wallpaper_group_diagram_pm.svg" alt="pm" style="width: 110px; height: auto; background: rgba(255,255,255,0.9); border-radius: 6px; padding: 8px;">
+                    <p class="xsmall" style="margin-top: 8px;">pm</p>
+                </div>
+                <div style="text-align: center;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/e/ee/Wallpaper_group_diagram_pg.svg" alt="pg" style="width: 110px; height: auto; background: rgba(255,255,255,0.9); border-radius: 6px; padding: 8px;">
+                    <p class="xsmall" style="margin-top: 8px;">pg</p>
+                </div>
+                <div style="text-align: center;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Wallpaper_group_diagram_cm.svg" alt="cm" style="width: 110px; height: auto; background: rgba(255,255,255,0.9); border-radius: 6px; padding: 8px;">
+                    <p class="xsmall" style="margin-top: 8px;">cm</p>
+                </div>
+                <div style="text-align: center;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/Wallpaper_group_diagram_pmm.svg" alt="pmm" style="width: 110px; height: auto; background: rgba(255,255,255,0.9); border-radius: 6px; padding: 8px;">
+                    <p class="xsmall" style="margin-top: 8px;">pmm</p>
+                </div>
+                <div style="text-align: center;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/Wallpaper_group_diagram_pmg.svg" alt="pmg" style="width: 110px; height: auto; background: rgba(255,255,255,0.9); border-radius: 6px; padding: 8px;">
+                    <p class="xsmall" style="margin-top: 8px;">pmg</p>
+                </div>
+                <div style="text-align: center;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/c/c7/Wallpaper_group_diagram_pgg.svg" alt="pgg" style="width: 110px; height: auto; background: rgba(255,255,255,0.9); border-radius: 6px; padding: 8px;">
+                    <p class="xsmall" style="margin-top: 8px;">pgg</p>
+                </div>
+                <div style="text-align: center;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/b/ba/Wallpaper_group_diagram_cmm.svg" alt="cmm" style="width: 110px; height: auto; background: rgba(255,255,255,0.9); border-radius: 6px; padding: 8px;">
+                    <p class="xsmall" style="margin-top: 8px;">cmm</p>
+                </div>
+                <div style="text-align: center;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/0/08/Wallpaper_group_diagram_p4_square.svg" alt="p4" style="width: 110px; height: auto; background: rgba(255,255,255,0.9); border-radius: 6px; padding: 8px;">
+                    <p class="xsmall" style="margin-top: 8px;">p4</p>
+                </div>
+                <div style="text-align: center;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/4/49/Wallpaper_group_diagram_p4m_square.svg" alt="p4m" style="width: 110px; height: auto; background: rgba(255,255,255,0.9); border-radius: 6px; padding: 8px;">
+                    <p class="xsmall" style="margin-top: 8px;">p4m</p>
+                </div>
+                <div style="text-align: center;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/0/0c/Wallpaper_group_diagram_p4g_square.svg" alt="p4g" style="width: 110px; height: auto; background: rgba(255,255,255,0.9); border-radius: 6px; padding: 8px;">
+                    <p class="xsmall" style="margin-top: 8px;">p4g</p>
+                </div>
+                <div style="text-align: center;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/2/20/Wallpaper_group_diagram_p3.svg" alt="p3" style="width: 110px; height: auto; background: rgba(255,255,255,0.9); border-radius: 6px; padding: 8px;">
+                    <p class="xsmall" style="margin-top: 8px;">p3</p>
+                </div>
+                <div style="text-align: center;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/8/82/Wallpaper_group_diagram_p3m1.svg" alt="p3m1" style="width: 110px; height: 110px; background: rgba(255,255,255,0.95); border-radius: 6px; object-fit: contain; padding: 8px;">
+                    <p class="xsmall" style="margin-top: 8px;">p3m1</p>
+                </div>
+                <div style="text-align: center;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/b/b2/Wallpaper_group_diagram_p31m.svg" alt="p31m" style="width: 110px; height: 110px; background: rgba(255,255,255,0.95); border-radius: 6px; object-fit: contain; padding: 8px;">
+                    <p class="xsmall" style="margin-top: 8px;">p31m</p>
+                </div>
+                <div style="text-align: center;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/a/a3/Wallpaper_group_diagram_p6.svg" alt="p6" style="width: 110px; height: 110px; background: rgba(255,255,255,0.95); border-radius: 6px; object-fit: contain; padding: 8px;">
+                    <p class="xsmall" style="margin-top: 8px;">p6</p>
+                </div>
+                <div style="text-align: center;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/b/b1/Wallpaper_group_diagram_p6m.svg" alt="p6m" style="width: 110px; height: 110px; background: rgba(255,255,255,0.95); border-radius: 6px; object-fit: contain; padding: 8px;">
+                    <p class="xsmall" style="margin-top: 8px;">p6m</p>
+                </div>
+            </div>
+
+            <div style="margin-top: 20px; display: flex; gap: 30px; justify-content: center;">
+                <div style="display: flex; align-items: center; gap: 8px;"><span style="width: 20px; height: 3px; background: #0066cc;"></span><span class="xsmall">Eje de reflexión</span></div>
+                <div style="display: flex; align-items: center; gap: 8px;"><span style="width: 20px; height: 3px; background: #cc0066; border-style: dashed;"></span><span class="xsmall">Eje de deslizamiento</span></div>
+                <div style="display: flex; align-items: center; gap: 8px;"><span style="width: 12px; height: 12px; background: #ffcc00; border-radius: 50%;"></span><span class="xsmall">Centro de rotación</span></div>
+            </div>
+        </div>
+
+        <div class="slide" data-slide="7">
+            <div class="section-tag">Grupos Puntuales</div>
+            <div class="slide-number">7 / 17</div>
+
+            <h2>6. El Grupo Puntual y la Holoedría</h2>
+            <div class="layout-split" style="margin-top: 15px;">
+                <div>
+                    <p style="font-size: 17px;">Para un grupo \(G\), el <strong>grupo puntual</strong> \(J\) es el conjunto de las partes lineales \(M\) de los elementos \((v, M) \in G\).</p>
+                    
+                    <h3 style="margin-top: 20px;">Restricción Fundamental</h3>
+                    <p style="font-size: 17px; margin-top: 10px;">El retículo \(L\) debe ser <strong>invariante</strong> bajo \(J\):</p>
+                    <div class="math-block" style="font-size: 1.1em;">
+                        \[ \forall R \in J, \forall t \in L: \quad Rt \in L \]
+                    </div>
+                    
+                    <h3 style="margin-top: 20px;">Los 10 Grupos Puntuales Planos</h3>
+                    <p style="font-size: 17px; margin-top: 10px;">Son subgrupos finitos de \(O(2)\):</p>
+                    <ul style="font-size: 16px; margin-top: 10px;">
+                        <li><strong>Cíclicos</strong> \(C_n\): solo rotación (quirales)</li>
+                        <li><strong>Diédricos</strong> \(D_n\): rotación + reflexión</li>
+                    </ul>
+                </div>
+                <div class="glass-card">
+                    <h3>Clasificación por Grupo Puntual</h3>
+                    <table style="font-size: 15px; margin-top: 10px;">
+                        <tr><th>Puntual</th><th>Grupos de Papel Tapiz</th></tr>
+                        <tr><td>\(C_1\)</td><td>p1</td></tr>
+                        <tr><td>\(C_2\)</td><td>p2</td></tr>
+                        <tr><td>\(C_3\)</td><td>p3</td></tr>
+                        <tr><td>\(C_4\)</td><td>p4</td></tr>
+                        <tr><td>\(C_6\)</td><td>p6</td></tr>
+                        <tr><td>\(D_1\)</td><td>pm, pg, cm</td></tr>
+                        <tr><td>\(D_2\)</td><td>pmm, pmg, pgg, cmm</td></tr>
+                        <tr><td>\(D_3\)</td><td>p3m1, p31m</td></tr>
+                        <tr><td>\(D_4\)</td><td>p4m, p4g</td></tr>
+                        <tr><td>\(D_6\)</td><td>p6m</td></tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-slide="8">
+            <div class="section-tag">Clasificación</div>
+            <div class="slide-number">8 / 17</div>
+
+            <h2>7. Tabla Completa: Los 17 Grupos</h2>
+            <div style="overflow-x: auto; flex: 1;">
+                <table style="font-size: 14px; width: 100%;">
+                    <thead>
+                        <tr>
+                            <th>IUCr</th>
+                            <th>Orbifold</th>
+                            <th>Retículo</th>
+                            <th>Rotación</th>
+                            <th>Reflexión</th>
+                            <th>Desliz.</th>
+                            <th>Cociente Topológico</th>
+                        </tr>
+                    </thead>
+                    <tbody style="font-size: 13px;">
+                        <tr><td><strong>p1</strong></td><td>\(\circ\)</td><td>Oblicuo</td><td>—</td><td>—</td><td>—</td><td>Toro \(T^2\)</td></tr>
+                        <tr><td><strong>p2</strong></td><td>2222</td><td>Oblicuo</td><td>2</td><td>—</td><td>—</td><td>Esfera con 4 conos</td></tr>
+                        <tr><td><strong>pm</strong></td><td>\(**\)</td><td>Rectangular</td><td>—</td><td>✓</td><td>—</td><td>Anillo (cilindro)</td></tr>
+                        <tr><td><strong>pg</strong></td><td>\(\times\times\)</td><td>Rectangular</td><td>—</td><td>—</td><td>✓</td><td>Botella de Klein</td></tr>
+                        <tr><td><strong>cm</strong></td><td>\(*\times\)</td><td>Rómbico</td><td>—</td><td>✓</td><td>✓</td><td>Banda de Möbius</td></tr>
+                        <tr><td><strong>pmm</strong></td><td>\(*2222\)</td><td>Rectangular</td><td>2</td><td>✓✓</td><td>—</td><td>Rectángulo "billar"</td></tr>
+                        <tr><td><strong>pmg</strong></td><td>\(22*\)</td><td>Rectangular</td><td>2</td><td>✓</td><td>✓</td><td>Disco + 2 conos</td></tr>
+                        <tr><td><strong>pgg</strong></td><td>\(22\times\)</td><td>Rectangular</td><td>2</td><td>—</td><td>✓✓</td><td>Esfera + cross-cap</td></tr>
+                        <tr><td><strong>cmm</strong></td><td>\(2*22\)</td><td>Rómbico</td><td>2</td><td>✓✓</td><td>—</td><td>Rombo "billar"</td></tr>
+                        <tr><td><strong>p4</strong></td><td>442</td><td>Cuadrado</td><td>4</td><td>—</td><td>—</td><td>Esfera (4,4,2)</td></tr>
+                        <tr><td><strong>p4m</strong></td><td>\(*442\)</td><td>Cuadrado</td><td>4</td><td>✓✓✓✓</td><td>—</td><td>Triángulo 45-45-90</td></tr>
+                        <tr><td><strong>p4g</strong></td><td>\(4*2\)</td><td>Cuadrado</td><td>4</td><td>✓✓</td><td>✓✓</td><td>Disco (4) + esquina (2)</td></tr>
+                        <tr><td><strong>p3</strong></td><td>333</td><td>Hexagonal</td><td>3</td><td>—</td><td>—</td><td>Esfera (3,3,3)</td></tr>
+                        <tr><td><strong>p3m1</strong></td><td>\(*333\)</td><td>Hexagonal</td><td>3</td><td>✓✓✓</td><td>—</td><td>Triángulo equilátero</td></tr>
+                        <tr><td><strong>p31m</strong></td><td>\(3*3\)</td><td>Hexagonal</td><td>3</td><td>✓✓✓</td><td>—</td><td>Triángulo + cono</td></tr>
+                        <tr><td><strong>p6</strong></td><td>632</td><td>Hexagonal</td><td>6</td><td>—</td><td>—</td><td>Esfera (6,3,2)</td></tr>
+                        <tr><td><strong>p6m</strong></td><td>\(*632\)</td><td>Hexagonal</td><td>6</td><td>✓✓✓✓✓✓</td><td>—</td><td>Triángulo 30-60-90</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="slide" data-slide="9">
+            <div class="section-tag">Familias</div>
+            <div class="slide-number">9 / 17</div>
+
+            <h2>8. Sistema Oblicuo y Rectangular (\(n=1,2\))</h2>
+            <p class="small" style="margin-bottom: 15px;">Retículos: Oblicuo (\(|t_1| \neq |t_2|, \gamma \neq 90°\)), Rectangular (\(\gamma = 90°\)), Rómbico (centrado).</p>
+
+            <div class="layout-split">
+                <div class="glass-card">
+                    <h3>Orden 1 (sin rotación)</h3>
+                    <ul style="margin-top: 12px; font-size: 16px;">
+                        <li><strong>p1</strong> \((\circ)\): Solo traslación. Cociente: Toro.</li>
+                        <li><strong>pm</strong> \((**)\): Espejos paralelos. Cociente: Cilindro.</li>
+                        <li><strong>pg</strong> \((\times\times)\): Deslizamientos. Cociente: <em>Botella de Klein</em> (no orientable).</li>
+                        <li><strong>cm</strong> \((*\times)\): Espejos + centrado. Cociente: <em>Banda de Möbius</em>.</li>
+                    </ul>
+                    <p class="xsmall" style="margin-top: 12px;"><strong>Distinción pm vs pg:</strong> Si doblas el patrón sobre el eje y coincide → pm. Si necesitas deslizar → pg.</p>
+                </div>
+                <div class="glass-card">
+                    <h3>Orden 2 (rotación 180°)</h3>
+                    <ul style="margin-top: 12px; font-size: 16px;">
+                        <li><strong>p2</strong> \((2222)\): Rotación pura. 4 centros por celda.</li>
+                        <li><strong>pmm</strong> \((*2222)\): Espejos ⊥. Rotaciones en intersecciones.</li>
+                        <li><strong>pmg</strong> \((22*)\): Espejo ∥ deslizamiento. Rotaciones <em>fuera</em> de espejos.</li>
+                        <li><strong>pgg</strong> \((22\times)\): Deslizamientos ⊥. Sin espejos. <em>Único rectangular quiral con rotación.</em></li>
+                        <li><strong>cmm</strong> \((2*22)\): Espejos ⊥ + centrado.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-slide="10">
+            <div class="section-tag">Familias</div>
+            <div class="slide-number">10 / 17</div>
+
+            <h2>9. Sistema Cuadrado y Hexagonal (\(n=3,4,6\))</h2>
+            <div class="layout-split" style="margin-top: 15px;">
+                <div class="glass-card">
+                    <h3>Cuadrado (\(n=4\), retículo \(|t_1|=|t_2|, \gamma=90°\))</h3>
+                    <ul style="margin-top: 12px; font-size: 16px;">
+                        <li><strong>p4</strong> \((442)\): Rotación 90°. Quiral (esvásticas, molinetes).</li>
+                        <li><strong>p4m</strong> \((*442)\): Centros orden 4 <em>sobre</em> espejos. 4 direcciones de reflexión. Cociente: Triángulo 45-45-90.</li>
+                        <li><strong>p4g</strong> \((4*2)\): Centros orden 4 <em>fuera</em> de espejos. Ejemplo: "Ángeles y Demonios" de Escher.</li>
+                    </ul>
+                    <p class="xsmall" style="margin-top: 10px;"><strong>Distinción p4m vs p4g:</strong> ¿El centro de orden 4 está en la intersección de espejos?</p>
+                </div>
+                <div class="glass-card">
+                    <h3>Hexagonal (\(n=3,6\), retículo \(\gamma=120°\))</h3>
+                    <ul style="margin-top: 12px; font-size: 16px;">
+                        <li><strong>p3</strong> \((333)\): Rotación 120°. Quiral (trisqueles).</li>
+                        <li><strong>p6</strong> \((632)\): Rotación 60°. Implica órdenes 2,3.</li>
+                        <li><strong>p3m1</strong> \((*333)\): Todos los centros <em>sobre</em> espejos.</li>
+                        <li><strong>p31m</strong> \((3*3)\): Algunos centros <em>fuera</em> de espejos.</li>
+                        <li><strong>p6m</strong> \((*632)\): <em>Máxima simetría</em>. 6 direcciones de espejos. Copos de nieve.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-slide="11">
+            <div class="section-tag">Historia</div>
+            <div class="slide-number">11 / 17</div>
+
+            <h2>8. Ejemplos Históricos del Mundo</h2>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 30px; margin-top: 25px; flex: 1; justify-items: center;">
+                <div style="display: flex; flex-direction: column; align-items: center;">
+                    <div class="art-frame" style="width: 280px; height: 280px;">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/5/57/Wallpaper_group-p4m-2.jpg" alt="Tela Tahiti">
+                        <div class="caption">p4m</div>
+                    </div>
+                    <p class="xsmall" style="margin-top: 10px; text-align: center;">Tela, Tahití</p>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: center;">
+                    <div class="art-frame" style="width: 280px; height: 280px;">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/e/ef/Wallpaper_group-p6-1.jpg" alt="Alhambra">
+                        <div class="caption">p6</div>
+                    </div>
+                    <p class="xsmall" style="margin-top: 10px; text-align: center;">La Alhambra, España</p>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: center;">
+                    <div class="art-frame" style="width: 280px; height: 280px;">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/d/d2/Wallpaper_group-p6m-3.jpg" alt="Nimroud Assyria">
+                        <div class="caption">p6m</div>
+                    </div>
+                    <p class="xsmall" style="margin-top: 10px; text-align: center;">Nimroud, Asiria</p>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: center;">
+                    <div class="art-frame" style="width: 280px; height: 280px;">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/2/24/Wallpaper_group-p4g-2.jpg" alt="Porcelana China">
+                        <div class="caption">p4g</div>
+                    </div>
+                    <p class="xsmall" style="margin-top: 10px; text-align: center;">Porcelana, China</p>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: center;">
+                    <div class="art-frame" style="width: 280px; height: 280px;">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/6/6c/Wallpaper_group-cm-4.jpg" alt="Alhambra cm">
+                        <div class="caption">cm</div>
+                    </div>
+                    <p class="xsmall" style="margin-top: 10px; text-align: center;">Arcos, Alhambra</p>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: center;">
+                    <div class="art-frame" style="width: 280px; height: 280px;">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/d/d9/Wallpaper_group-pmg-1.jpg" alt="Hawaii">
+                        <div class="caption">pmg</div>
+                    </div>
+                    <p class="xsmall" style="margin-top: 10px; text-align: center;">Tela, Hawái</p>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: center;">
+                    <div class="art-frame" style="width: 280px; height: 280px;">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/3/34/Wallpaper_group-p3m1-1.jpg" alt="Persia">
+                        <div class="caption">p3m1</div>
+                    </div>
+                    <p class="xsmall" style="margin-top: 10px; text-align: center;">Azulejo persa</p>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: center;">
+                    <div class="art-frame" style="width: 280px; height: 280px;">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/1/1d/Wallpaper_group-cmm-1.jpg" alt="Ladrillo USA">
+                        <div class="caption">cmm</div>
+                    </div>
+                    <p class="xsmall" style="margin-top: 10px; text-align: center;">Pared de ladrillos</p>
+                </div>
+            </div>
+            <p class="xsmall" style="margin-top: 15px; text-align: center; color: #666;">Imágenes: Wikipedia Commons — The Grammar of Ornament (1856) por Owen Jones</p>
+        </div>
+
+        <div class="slide" data-slide="12">
+            <div class="section-tag">Historia</div>
+            <div class="slide-number">12 / 17</div>
+
+            <h2>10. M.C. Escher y la Matemática</h2>
+            <div class="layout-split" style="margin-top: 15px;">
+                <div style="display: flex; flex-direction: column; gap: 20px;">
+                    <div>
+                        <h3>El Artista que Estudió los 17 Grupos</h3>
+                        <p style="font-size: 16px; margin-top: 8px;">Su hermano <strong>Berend</strong> (geólogo) le envió los papers de <strong>George Pólya</strong> y el cristalógrafo <strong>Friedrich Haag</strong> sobre grupos de simetría plana.</p>
+                        <p style="font-size: 16px; margin-top: 10px;">Escher estudió meticulosamente los <strong>17 grupos canónicos</strong> y creó teselados periódicos con <strong>43 dibujos</strong> de diferentes tipos de simetría, desarrollando su propia notación matemática.</p>
+                        <p style="font-size: 16px; margin-top: 10px;">A partir de 1937 creó xilografías basadas en los 17 grupos. Su serie <em>Metamorphosis</em> (1937-1967) culminó en <strong>Metamorphosis III</strong>, de casi <strong>7 metros</strong> de largo.</p>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 15px;">
+                        <div class="quote" style="margin: 0; font-size: 18px;">
+                            "Para mí sigue siendo una pregunta abierta si este trabajo pertenece al mundo de las matemáticas o al del arte."
+                            <div class="quote-author">— M.C. Escher</div>
+                        </div>
+                        <div class="quote" style="margin: 0; font-size: 18px;">
+                            "[Mathematicians] have opened the gate leading to an extensive domain, but they have not entered this domain themselves. By their very nature thay are more interested in the way in which the gate is opened than in the garden lying behind it."
+                            <div class="quote-author">— M.C. Escher</div>
+                        </div>
+                    </div>
+                </div>
+                <div style="flex: 0 0 240px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                    <img src="https://uploads8.wikiart.org/images/m-c-escher/lizard-1.jpg" alt="Escher Lizard Tessellation" style="width: 100%; height: auto; max-height: 420px; border-radius: 4px; object-fit: cover;">
+                    <p class="xsmall" style="margin-top: 12px;">"Lagartos" (1942) — M.C. Escher</p>
+                </div>
+            </div>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-slide="13">
+            <div class="section-tag">Matemáticos</div>
+            <div class="slide-number">13 / 17</div>
+
+            <h2>11. Historia Matemática</h2>
+            <div class="layout-split" style="margin-top: 20px;">
+                <div>
+                    <h3>Demostración de los 17 Grupos</h3>
+                    <ul style="margin-top: 20px;">
+                        <li><strong>Evgraf Fedorov</strong> (1891) — Primera prueba completa en ruso</li>
+                        <li><strong>George Pólya</strong> (1924) — Demostración independiente</li>
+                        <li><strong>John Conway</strong> — Notación orbifold moderna</li>
+                    </ul>
+                    
+                    <h3 style="margin-top: 25px;">¿Por qué exactamente 17?</h3>
+                    <p style="font-size: 16px; margin-top: 10px;">El Teorema Mágico: Solo 17 combinaciones de símbolos orbifold suman costo = 2.</p>
+                    <div class="math-block" style="font-size: 1em;">
+                        \[ \sum \frac{n_i - 1}{n_i} + \sum \frac{k_j - 1}{2k_j} + \#* + \#\times = 2 \]
+                    </div>
+                </div>
+                <div class="glass-card">
+                    <h3>Verificación: \(n=5\) es imposible</h3>
+                    <p style="font-size: 15px; margin-top: 12px;">Intentemos con dos puntos de orden 5:</p>
+                    <div class="math-block" style="font-size: 1em;">
+                        \[ \frac{4}{5} + \frac{4}{5} = 1.6 \neq 2 \]
+                    </div>
+                    <p style="font-size: 15px; margin-top: 12px;">Con tres puntos de orden 5:</p>
+                    <div class="math-block" style="font-size: 1em;">
+                        \[ \frac{4}{5} \times 3 = 2.4 > 2 \]
+                    </div>
+                    <p style="font-size: 15px; margin-top: 12px;"><strong>Conclusión:</strong> No existe ninguna combinación con \(n=5\) que sume exactamente 2. Esta es la explicación <em>topológica</em> profunda de por qué existen exactamente 17 grupos.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-slide="14">
+            <div class="section-tag">Algoritmo</div>
+            <div class="slide-number">14 / 17</div>
+
+            <h2>12. Algoritmo de Identificación</h2>
+            <div class="layout-split" style="margin-top: 15px;">
+                <div class="glass-card">
+                    <h3>Paso 1: Orden de Rotación Máximo</h3>
+                    <table style="font-size: 15px; margin-top: 10px;">
+                        <tr><td>\(n=6\)</td><td>→ p6, p6m</td></tr>
+                        <tr><td>\(n=4\)</td><td>→ p4, p4m, p4g</td></tr>
+                        <tr><td>\(n=3\)</td><td>→ p3, p3m1, p31m</td></tr>
+                        <tr><td>\(n=2\)</td><td>→ p2, pmm, pmg, pgg, cmm</td></tr>
+                        <tr><td>\(n=1\)</td><td>→ p1, pm, pg, cm</td></tr>
+                    </table>
+                    
+                    <h3 style="margin-top: 20px;">Paso 2: ¿Hay Reflexiones?</h3>
+                    <p style="font-size: 15px; margin-top: 8px;">Sí → grupos con <code>m</code> o <code>*</code></p>
+                    <p style="font-size: 15px;">No → p1, p2, pg, pgg, p3, p4, p6</p>
+                    
+                    <h3 style="margin-top: 20px;">Paso 3: ¿Centro de Rotación sobre Espejo?</h3>
+                    <p style="font-size: 15px; margin-top: 8px;">Sí → pnm (p4m, p6m, p3m1...)</p>
+                    <p style="font-size: 15px;">No → png (p4g, p31m...)</p>
+                </div>
+                <div class="glass-card">
+                    <h3>Ejemplo: "Reptiles" (Escher, 1939)</h3>
+                    <div style="display: flex; gap: 15px; align-items: flex-start;">
+                        <div style="flex: 1;">
+                            <ol style="font-size: 14px; margin-top: 8px;">
+                                <li><strong>Rotación:</strong> Lagartos convergen en puntos → orden <strong>3</strong> (120°)</li>
+                                <li><strong>Reflexión:</strong> No hay espejos (lagartos quirales)</li>
+                                <li><strong>Resultado:</strong> Rotación pura de orden 3</li>
+                            </ol>
+                            <p style="font-size: 15px; margin-top: 12px; color: #ffcc00;"><strong>Grupo: p3</strong> \((333)\)</p>
+                        </div>
+                        <img src="https://upload.wikimedia.org/wikipedia/en/3/33/Study_of_Regular_Division_of_the_Plane_with_Reptiles.jpg" alt="Reptiles" style="width: 100px; height: auto; border-radius: 4px;">
+                    </div>
+                    
+                    <h3 style="margin-top: 18px;">Ejemplo: "Ángeles y Demonios"</h3>
+                    <ol style="font-size: 14px; margin-top: 8px;">
+                        <li><strong>Rotación:</strong> Puntas de alas → orden <strong>4</strong></li>
+                        <li><strong>Reflexión:</strong> Sí, bisecando cuerpos</li>
+                        <li><strong>Centro sobre espejo:</strong> No (centro en alas, espejo por cuerpo)</li>
+                    </ol>
+                    <p style="font-size: 15px; margin-top: 10px; color: #ffcc00;"><strong>Grupo: p4g</strong> \((4*2)\)</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-slide="15">
+            <div class="section-tag">Interactivo</div>
+            <div class="slide-number">15 / 17</div>
+
+            <h2>13. Experimentación Interactiva</h2>
+            <div class="layout-split" style="margin-top: 30px;">
+                <div>
+                    <p>Para visualizar cómo los generadores (\(g, m, 2, 3...\)) crean el patrón completo, hemos creado una herramienta interactiva.</p>
+
+                    <h3 style="margin-top: 40px;">Escanea para probar los 17 grupos:</h3>
+                    <p style="margin-top: 15px;">Explora cada uno de los grupos de simetría plana y observa cómo las transformaciones fundamentales generan patrones infinitos.</p>
+
+                    <div style="margin-top: 40px;">
+                        <a href="teselados.html" style="display: inline-block; padding: 15px 30px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; text-decoration: none; font-size: 18px; letter-spacing: 0.1em;">
+                            → ABRIR VISUALIZADOR
+                        </a>
+                    </div>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                    <div style="background: #fff; padding: 15px; border-radius: 8px;">
+                        <img src="images/qr.png" alt="QR Code" style="width: 180px; height: 180px; display: block;">
+                    </div>
+                    <p style="margin-top: 15px; font-size: 18px; color: #fff; font-weight: 500;">gatomiau.app/teselados</p>
+                    <div class="art-frame" style="width: 280px; height: 280px; margin-top: 20px;">
+                        <img src="images/teselado_app.png" alt="App Preview">
+                        <div class="caption">Vista previa</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" data-slide="16">
+            <div class="section-tag">Conclusión</div>
+            <div class="slide-number">16 / 17</div>
+
+            <h2>14. Conclusión</h2>
+            <div class="layout-center" style="padding-top: 20px;">
+                <div class="quote" style="max-width: 900px; font-size: 24px; margin-bottom: 30px;">
+                    "La clasificación de los 17 grupos de papel tapiz es un triunfo de la categorización matemática — demuestra cómo axiomas simples (isometría, discreción, periodicidad) conducen a un universo rico pero finito de estructuras."
+                </div>
+                
+                <div class="layout-grid-3" style="width: 100%; margin-top: 20px;">
+                    <div class="glass-card" style="text-align: center;">
+                        <h3 style="color: #ffcc00;">Restricción Algebraica</h3>
+                        <p style="font-size: 16px; margin-top: 10px;">\(\text{Tr}(M) = 2\cos\theta \in \mathbb{Z}\)</p>
+                        <p class="xsmall" style="margin-top: 8px;">Solo \(n = 1,2,3,4,6\)</p>
+                    </div>
+                    <div class="glass-card" style="text-align: center;">
+                        <h3 style="color: #00bcd4;">Restricción Topológica</h3>
+                        <p style="font-size: 16px; margin-top: 10px;">\(\sum \text{costos} = 2\)</p>
+                        <p class="xsmall" style="margin-top: 8px;">Característica de Euler del orbifold</p>
+                    </div>
+                    <div class="glass-card" style="text-align: center;">
+                        <h3 style="color: #e040fb;">Resultado</h3>
+                        <p style="font-size: 16px; margin-top: 10px;"><strong>Exactamente 17 grupos</strong></p>
+                        <p class="xsmall" style="margin-top: 8px;">Fedorov (1891), Pólya (1924)</p>
+                    </div>
+                </div>
+                
+                <p style="margin-top: 30px; font-size: 18px; color: var(--text-secondary);">
+                    Desde la Alhambra hasta Escher, desde la cristalografía hasta la topología — <br>
+                    <strong>17 estructuras algebraicas describen toda la simetría periódica del plano.</strong>
+                </p>
+            </div>
+        </div>
+
+        <div class="slide" data-slide="17">
+            <div class="section-tag">Fin</div>
+            <div class="slide-number">17 / 17</div>
+
+            <div class="layout-center">
+                <h1 style="font-size: 100px;">Gracias</h1>
+                <p style="margin-top: 40px; font-size: 24px; color: var(--text-secondary);">
+                    Teoría de Grupos — Jose Julian Parra Virgen
+                </p>
+
+                <div style="margin-top: 50px; display: flex; gap: 25px;">
+                    <div class="art-frame" style="width: 180px; height: 180px;">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/a/ab/Wallpaper_group-p4m-5.jpg" alt="Egipto">
+                    </div>
+                    <div class="art-frame" style="width: 180px; height: 180px;">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/e/ef/Wallpaper_group-p6-1.jpg" alt="Alhambra">
+                    </div>
+                    <div class="art-frame" style="width: 180px; height: 180px;">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/2/24/Wallpaper_group-p4g-2.jpg" alt="China">
+                    </div>
+                    <div class="art-frame" style="width: 180px; height: 180px;">
+                        <img src="https://upload.wikimedia.org/wikipedia/en/3/33/Study_of_Regular_Division_of_the_Plane_with_Reptiles.jpg" alt="Escher Reptiles">
+                    </div>
+                    <div class="art-frame" style="width: 180px; height: 180px;">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/3/34/Wallpaper_group-p3m1-1.jpg" alt="Persia">
+                    </div>
+                </div>
+
+                <p style="margin-top: 40px; font-size: 16px; color: #555;">
+                    17 grupos • Infinitas posibilidades • Un universo de simetría
+                </p>
+                <p class="xsmall" style="margin-top: 20px;">Imágenes: Wikipedia Commons</p>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        let currentSlide = 1;
+        const totalSlides = 17;
+
+        document.addEventListener("DOMContentLoaded", function() {
+            if (typeof renderMathInElement !== 'undefined') {
+                renderMathInElement(document.body, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false},
+                        {left: '\\(', right: '\\)', display: false},
+                        {left: '\\[', right: '\\]', display: true}
+                    ],
+                    throwOnError: false
+                });
+            }
+            updateSlide();
+        });
+
+        function changeSlide(direction) {
+            const newSlide = currentSlide + direction;
+            if (newSlide >= 1 && newSlide <= totalSlides) {
+                currentSlide = newSlide;
+                updateSlide();
+            }
+        }
+
+        function goToSlide(n) {
+            if (n >= 1 && n <= totalSlides) {
+                currentSlide = n;
+                updateSlide();
+            }
+        }
+
+        function updateSlide() {
+            document.querySelectorAll('.slide').forEach(slide => {
+                slide.classList.remove('active');
+            });
+
+            const activeSlide = document.querySelector(`.slide[data-slide="${currentSlide}"]`);
+            if (activeSlide) {
+                activeSlide.classList.add('active');
+            }
+        }
+
+        document.addEventListener('keydown', function(e) {
+            switch(e.key) {
+                case 'ArrowRight':
+                case 'ArrowDown':
+                case ' ':
+                case 'PageDown':
+                case 'Enter':
+                    e.preventDefault();
+                    changeSlide(1);
+                    break;
+                case 'ArrowLeft':
+                case 'ArrowUp':
+                case 'PageUp':
+                case 'Backspace':
+                    e.preventDefault();
+                    changeSlide(-1);
+                    break;
+                case 'Home':
+                    e.preventDefault();
+                    goToSlide(1);
+                    break;
+                case 'End':
+                    e.preventDefault();
+                    goToSlide(totalSlides);
+                    break;
+            }
+        });
+
+        document.addEventListener('click', function(e) {
+            if (e.target.tagName === 'A') return;
+            const rect = document.body.getBoundingClientRect();
+            const x = e.clientX;
+            if (x > rect.width / 2) {
+                changeSlide(1);
+            } else {
+                changeSlide(-1);
+            }
+        });
+    </script>
+</body>
+</html>
