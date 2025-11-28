@@ -356,7 +356,7 @@
 
         <div class="slide" data-slide="2">
             <div class="section-tag">Fundamentos</div>
-            <div class="slide-number">2 / 17</div>
+            <div class="slide-number">2 / 18</div>
 
             <h2>1. El Grupo Euclidiano \(E(2)\)</h2>
             <div class="layout-split" style="margin-top: 15px;">
@@ -388,8 +388,19 @@
         </div>
 
         <div class="slide" data-slide="3">
+            <div class="section-tag">Ejemplo Visual</div>
+            <div class="slide-number">3 / 18</div>
+
+            <h2>Ejemplo de Grupo de Papel Tapiz</h2>
+            <div class="layout-center" style="flex: 1;">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Krok_6.svg/2560px-Krok_6.svg.png" alt="Ejemplo de Wallpaper Group" style="max-height: 75vh; max-width: 90%; object-fit: contain;">
+                <p class="small" style="margin-top: 20px; color: #888;">Visualización de un grupo de papel tapiz — patrón periódico generado por isometrías</p>
+            </div>
+        </div>
+
+        <div class="slide" data-slide="4">
             <div class="section-tag">Teorema Central</div>
-            <div class="slide-number">3 / 17</div>
+            <div class="slide-number">4 / 18</div>
 
             <h2>2. Teorema de Restricción Cristalográfica</h2>
             <div class="layout-split" style="margin-top: 15px;">
@@ -429,9 +440,9 @@
             </div>
         </div>
 
-        <div class="slide" data-slide="4">
+        <div class="slide" data-slide="5">
             <div class="section-tag">Notación</div>
-            <div class="slide-number">4 / 17</div>
+            <div class="slide-number">5 / 18</div>
 
             <h2>3. Notación Hermann-Mauguin (IUCr)</h2>
             <div class="layout-center" style="padding-top: 20px;">
@@ -468,9 +479,9 @@
             </div>
         </div>
 
-        <div class="slide" data-slide="5">
+        <div class="slide" data-slide="6">
             <div class="section-tag">Notación</div>
-            <div class="slide-number">5 / 17</div>
+            <div class="slide-number">6 / 18</div>
 
             <h2>4. Notación Orbifold (Conway-Thurston)</h2>
             <div class="layout-split" style="margin-top: 15px;">
@@ -502,9 +513,9 @@
             </div>
         </div>
 
-        <div class="slide" data-slide="6">
+        <div class="slide" data-slide="7">
             <div class="section-tag">Visualización</div>
-            <div class="slide-number">6 / 17</div>
+            <div class="slide-number">7 / 18</div>
 
             <h2>4. Diagramas de Simetría</h2>
             <p class="small" style="margin-bottom: 20px;">Cada grupo tiene un diagrama que muestra sus elementos de simetría: centros de rotación, ejes de reflexión y ejes de deslizamiento.</p>
@@ -580,11 +591,17 @@
                 </div>
             </div>
 
-            <div style="margin-top: 20px; display: flex; gap: 30px; justify-content: center;">
-                <div style="display: flex; align-items: center; gap: 8px;"><span style="width: 20px; height: 3px; background: #0066cc;"></span><span class="xsmall">Eje de reflexión</span></div>
-                <div style="display: flex; align-items: center; gap: 8px;"><span style="width: 20px; height: 3px; background: #cc0066; border-style: dashed;"></span><span class="xsmall">Eje de deslizamiento</span></div>
-                <div style="display: flex; align-items: center; gap: 8px;"><span style="width: 12px; height: 12px; background: #ffcc00; border-radius: 50%;"></span><span class="xsmall">Centro de rotación</span></div>
+            <div style="margin-top: 15px; display: flex; flex-wrap: wrap; gap: 12px 25px; justify-content: center; background: rgba(255,255,255,0.03); padding: 12px 20px; border-radius: 8px;">
+                <!-- Líneas -->
+                <div style="display: flex; align-items: center; gap: 6px;"><span style="width: 18px; height: 2px; background: #0066cc;"></span><span class="xsmall">Reflexión</span></div>
+                <div style="display: flex; align-items: center; gap: 6px;"><span style="width: 18px; height: 2px; background: #cc0066; background: repeating-linear-gradient(90deg, #cc0066, #cc0066 3px, transparent 3px, transparent 6px);"></span><span class="xsmall">Deslizamiento</span></div>
+                <!-- Centros de rotación por orden -->
+                <div style="display: flex; align-items: center; gap: 6px;"><span style="width: 10px; height: 10px; background: #ffcc00; clip-path: polygon(50% 0%, 100% 100%, 0% 100%);"></span><span class="xsmall">Rot. orden 3 (120°)</span></div>
+                <div style="display: flex; align-items: center; gap: 6px;"><span style="width: 10px; height: 10px; background: #ff6600;"></span><span class="xsmall">Rot. orden 4 (90°)</span></div>
+                <div style="display: flex; align-items: center; gap: 6px;"><span style="width: 10px; height: 10px; background: #00cc66; clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);"></span><span class="xsmall">Rot. orden 6 (60°)</span></div>
+                <div style="display: flex; align-items: center; gap: 6px;"><span style="width: 10px; height: 10px; background: #cc0066; clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);"></span><span class="xsmall">Rot. orden 2 (180°)</span></div>
             </div>
+            <p class="xsmall" style="margin-top: 8px; text-align: center; color: #666;">Los colores distinguen centros de rotación equivalentes vs. no equivalentes bajo las simetrías del grupo.</p>
         </div>
 
         <div class="slide" data-slide="7">
@@ -628,9 +645,9 @@
             </div>
         </div>
 
-        <div class="slide" data-slide="8">
+        <div class="slide" data-slide="9">
             <div class="section-tag">Clasificación</div>
-            <div class="slide-number">8 / 17</div>
+            <div class="slide-number">9 / 18</div>
 
             <h2>7. Tabla Completa: Los 17 Grupos</h2>
             <div style="overflow-x: auto; flex: 1;">
@@ -669,9 +686,9 @@
             </div>
         </div>
 
-        <div class="slide" data-slide="9">
+        <div class="slide" data-slide="10">
             <div class="section-tag">Familias</div>
-            <div class="slide-number">9 / 17</div>
+            <div class="slide-number">10 / 18</div>
 
             <h2>8. Sistema Oblicuo y Rectangular (\(n=1,2\))</h2>
             <p class="small" style="margin-bottom: 15px;">Retículos: Oblicuo (\(|t_1| \neq |t_2|, \gamma \neq 90°\)), Rectangular (\(\gamma = 90°\)), Rómbico (centrado).</p>
@@ -700,9 +717,9 @@
             </div>
         </div>
 
-        <div class="slide" data-slide="10">
+        <div class="slide" data-slide="11">
             <div class="section-tag">Familias</div>
-            <div class="slide-number">10 / 17</div>
+            <div class="slide-number">11 / 18</div>
 
             <h2>9. Sistema Cuadrado y Hexagonal (\(n=3,4,6\))</h2>
             <div class="layout-split" style="margin-top: 15px;">
@@ -728,9 +745,9 @@
             </div>
         </div>
 
-        <div class="slide" data-slide="11">
+        <div class="slide" data-slide="12">
             <div class="section-tag">Historia</div>
-            <div class="slide-number">11 / 17</div>
+            <div class="slide-number">12 / 18</div>
 
             <h2>8. Ejemplos Históricos del Mundo</h2>
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 30px; margin-top: 25px; flex: 1; justify-items: center;">
@@ -794,9 +811,9 @@
             <p class="xsmall" style="margin-top: 15px; text-align: center; color: #666;">Imágenes: Wikipedia Commons — The Grammar of Ornament (1856) por Owen Jones</p>
         </div>
 
-        <div class="slide" data-slide="12">
+        <div class="slide" data-slide="13">
             <div class="section-tag">Historia</div>
-            <div class="slide-number">12 / 17</div>
+            <div class="slide-number">13 / 18</div>
 
             <h2>10. M.C. Escher y la Matemática</h2>
             <div class="layout-split" style="margin-top: 15px;">
@@ -828,9 +845,9 @@
             </div>
         </div>
 
-        <div class="slide" data-slide="13">
+        <div class="slide" data-slide="14">
             <div class="section-tag">Matemáticos</div>
-            <div class="slide-number">13 / 17</div>
+            <div class="slide-number">14 / 18</div>
 
             <h2>11. Historia Matemática</h2>
             <div class="layout-split" style="margin-top: 20px;">
@@ -863,9 +880,9 @@
             </div>
         </div>
 
-        <div class="slide" data-slide="14">
+        <div class="slide" data-slide="15">
             <div class="section-tag">Algoritmo</div>
-            <div class="slide-number">14 / 17</div>
+            <div class="slide-number">15 / 18</div>
 
             <h2>12. Algoritmo de Identificación</h2>
             <div class="layout-split" style="margin-top: 15px;">
@@ -889,32 +906,36 @@
                 </div>
                 <div class="glass-card">
                     <h3>Ejemplo: "Reptiles" (Escher, 1939)</h3>
-                    <div style="display: flex; gap: 15px; align-items: flex-start;">
+                    <div style="display: flex; gap: 12px; align-items: flex-start;">
                         <div style="flex: 1;">
-                            <ol style="font-size: 14px; margin-top: 8px;">
-                                <li><strong>Rotación:</strong> Lagartos convergen en puntos → orden <strong>3</strong> (120°)</li>
-                                <li><strong>Reflexión:</strong> No hay espejos (lagartos quirales)</li>
-                                <li><strong>Resultado:</strong> Rotación pura de orden 3</li>
+                            <ol style="font-size: 13px; margin-top: 6px;">
+                                <li><strong>Rotación:</strong> Lagartos convergen → orden <strong>3</strong></li>
+                                <li><strong>Reflexión:</strong> No (lagartos quirales)</li>
                             </ol>
-                            <p style="font-size: 15px; margin-top: 12px; color: #ffcc00;"><strong>Grupo: p3</strong> \((333)\)</p>
+                            <p style="font-size: 14px; margin-top: 8px; color: #ffcc00;"><strong>Grupo: p3</strong> \((333)\)</p>
                         </div>
-                        <img src="https://upload.wikimedia.org/wikipedia/en/3/33/Study_of_Regular_Division_of_the_Plane_with_Reptiles.jpg" alt="Reptiles" style="width: 100px; height: auto; border-radius: 4px;">
+                        <img src="https://upload.wikimedia.org/wikipedia/en/3/33/Study_of_Regular_Division_of_the_Plane_with_Reptiles.jpg" alt="Reptiles" style="width: 80px; height: auto; border-radius: 4px;">
                     </div>
                     
-                    <h3 style="margin-top: 18px;">Ejemplo: "Ángeles y Demonios"</h3>
-                    <ol style="font-size: 14px; margin-top: 8px;">
-                        <li><strong>Rotación:</strong> Puntas de alas → orden <strong>4</strong></li>
-                        <li><strong>Reflexión:</strong> Sí, bisecando cuerpos</li>
-                        <li><strong>Centro sobre espejo:</strong> No (centro en alas, espejo por cuerpo)</li>
-                    </ol>
-                    <p style="font-size: 15px; margin-top: 10px; color: #ffcc00;"><strong>Grupo: p4g</strong> \((4*2)\)</p>
+                    <h3 style="margin-top: 14px;">Ejemplo: "Ángeles y Demonios" (Circle Limit IV)</h3>
+                    <div style="display: flex; gap: 12px; align-items: flex-start;">
+                        <div style="flex: 1;">
+                            <ol style="font-size: 13px; margin-top: 6px;">
+                                <li><strong>Rotación:</strong> Puntas de alas → orden <strong>4</strong></li>
+                                <li><strong>Reflexión:</strong> Sí, bisecando cuerpos</li>
+                                <li><strong>Centro sobre espejo:</strong> No</li>
+                            </ol>
+                            <p style="font-size: 14px; margin-top: 8px; color: #ffcc00;"><strong>Grupo: p4g</strong> \((4*2)\)</p>
+                        </div>
+                        <img src="https://prdzoomst01.blob.core.windows.net/escher-production-silverstripe-assets-public/Uploads/ImageBlock/TEK-1980-0057-e1599124458257.jpg" alt="Angels and Devils" style="width: 80px; height: auto; border-radius: 4px;">
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="slide" data-slide="15">
+        <div class="slide" data-slide="16">
             <div class="section-tag">Interactivo</div>
-            <div class="slide-number">15 / 17</div>
+            <div class="slide-number">16 / 18</div>
 
             <h2>13. Experimentación Interactiva</h2>
             <div class="layout-split" style="margin-top: 30px;">
@@ -943,9 +964,9 @@
             </div>
         </div>
 
-        <div class="slide" data-slide="16">
+        <div class="slide" data-slide="17">
             <div class="section-tag">Conclusión</div>
-            <div class="slide-number">16 / 17</div>
+            <div class="slide-number">17 / 18</div>
 
             <h2>14. Conclusión</h2>
             <div class="layout-center" style="padding-top: 20px;">
@@ -978,9 +999,9 @@
             </div>
         </div>
 
-        <div class="slide" data-slide="17">
+        <div class="slide" data-slide="18">
             <div class="section-tag">Fin</div>
-            <div class="slide-number">17 / 17</div>
+            <div class="slide-number">18 / 18</div>
 
             <div class="layout-center">
                 <h1 style="font-size: 100px;">Gracias</h1>
@@ -1017,7 +1038,7 @@
 
     <script>
         let currentSlide = 1;
-        const totalSlides = 17;
+        const totalSlides = 18;
 
         document.addEventListener("DOMContentLoaded", function() {
             if (typeof renderMathInElement !== 'undefined') {
