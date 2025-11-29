@@ -1,0 +1,1442 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Práctica: Gramáticas Regulares y Aceptadores de Estado Finito</title>
+    <style>
+        :root {
+            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: #fff;
+            color: #000;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+
+        main.container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 1.75rem;
+            margin-bottom: 0.5rem;
+            font-weight: 400;
+            letter-spacing: 0.05em;
+        }
+        
+        .header-url {
+            text-align: center;
+            font-family: var(--font-mono);
+            color: #888;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+        }
+        
+        h3 {
+           font-size: 1.1rem;
+           margin-top: 1.5rem;
+           border-bottom: 1px solid #000;
+           padding-bottom: 0.5rem;
+           font-weight: 400;
+        }
+
+        h4 {
+            font-size: 1rem;
+            margin-top: 1rem;
+            font-weight: 500;
+        }
+
+        article {
+            border: 1px solid #000;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        article > header {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .grid {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        @media (min-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        
+        textarea {
+            width: 100%;
+            box-sizing: border-box;
+            height: 200px;
+            resize: vertical;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            padding: 0.75rem;
+            border: 1px solid #000;
+            margin-bottom: 1rem;
+        }
+
+        textarea:focus {
+            outline: 2px solid #000;
+            outline-offset: 2px;
+        }
+
+        button {
+            background: #000;
+            color: #fff;
+            border: 1px solid #000;
+            padding: 0.75rem 1.5rem;
+            font-size: 0.8rem;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: all 0.2s;
+            width: 100%;
+        }
+
+        button:hover {
+            background: #333;
+            border-color: #333;
+        }
+
+        button.secondary {
+            background: #fff;
+            color: #000;
+        }
+
+        button.secondary:hover {
+            background: #f0f0f0;
+        }
+
+        button.accent {
+            background: #0066cc;
+            border-color: #0066cc;
+        }
+
+        button.accent:hover {
+            background: #0052a3;
+            border-color: #0052a3;
+        }
+        
+        select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-color: #fff;
+            border: 1px solid #000;
+            padding: 0.75rem;
+            font-size: 0.9rem;
+            width: 100%;
+            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cpath%20d%3D%22M5%208l5%205%205-5z%22%20fill%3D%22%23000%22/%3E%3C/svg%3E');
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1em;
+        }
+
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translate(-50%, 100px);
+            background-color: #000;
+            color: #fff;
+            padding: 12px 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            transition: transform 0.4s ease-in-out;
+            z-index: 1000;
+        }
+
+        .notification.show {
+            transform: translate(-50%, 0);
+        }
+
+        details {
+            border: 1px solid #000;
+            padding: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        details > summary {
+            cursor: pointer;
+            font-weight: 500;
+        }
+        
+        details article {
+            border: none;
+            padding: 1rem 0 0 0;
+            margin: 0;
+        }
+
+        /* Estilos para la tabla de transiciones */
+        .transition-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            margin-top: 1rem;
+        }
+
+        .transition-table th,
+        .transition-table td {
+            border: 1px solid #000;
+            padding: 0.75rem;
+            text-align: center;
+        }
+
+        .transition-table th {
+            background-color: #f0f0f0;
+            font-weight: 600;
+        }
+
+        .transition-table td {
+            background-color: #fff;
+        }
+
+        .transition-table tr:hover td {
+            background-color: #f9f9f9;
+        }
+
+        .state-initial {
+            font-weight: bold;
+        }
+
+        .state-final {
+            position: relative;
+        }
+
+        .state-final::after {
+            content: '*';
+            color: #0066cc;
+            margin-left: 2px;
+        }
+
+        /* Contenedor de resultados */
+        .results-container {
+            margin-top: 1rem;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        
+        .results-container.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .result-box {
+            background-color: #f8f8f8;
+            border: 1px solid #000;
+            padding: 1rem;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+            word-break: break-all;
+            margin-top: 1rem;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #000;
+            margin-bottom: 1.5rem;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 1rem;
+            text-align: center;
+            cursor: pointer;
+            background: #f0f0f0;
+            border: 1px solid #000;
+            border-bottom: none;
+            margin-right: -1px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .tab:last-child {
+            margin-right: 0;
+        }
+
+        .tab.active {
+            background: #000;
+            color: #fff;
+        }
+
+        .tab:hover:not(.active) {
+            background: #e0e0e0;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* File input styling */
+        .file-input-container {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .file-input-container input[type="file"] {
+            display: none;
+        }
+
+        .file-label {
+            display: inline-block;
+            background: #fff;
+            color: #000;
+            border: 1px solid #000;
+            padding: 0.75rem 1.5rem;
+            font-size: 0.8rem;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: all 0.2s;
+            text-align: center;
+            flex: 1;
+        }
+
+        /* Estilos para inputs de texto */
+        input[type="text"] {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 0.75rem;
+            border: 1px solid #000;
+            margin: 0.5rem 0 1rem 0;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+        }
+
+        input[type="text"]:focus {
+            outline: 2px solid #000;
+            outline-offset: 2px;
+        }
+
+        .file-label:hover {
+            background: #f0f0f0;
+        }
+
+        /* Info badges */
+        .badge {
+            display: inline-block;
+            background: #e0e0e0;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            border-radius: 2px;
+            margin-right: 0.5rem;
+            font-family: var(--font-mono);
+        }
+
+        .badge.initial {
+            background: #0066cc;
+            color: #fff;
+        }
+
+        .badge.final {
+            background: #28a745;
+            color: #fff;
+        }
+
+        /* Diagrama visual */
+        .automaton-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .info-card {
+            border: 1px solid #000;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .info-card-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: #666;
+            margin-bottom: 0.5rem;
+        }
+
+        .info-card-value {
+            font-size: 1.25rem;
+            font-weight: 600;
+            font-family: var(--font-mono);
+        }
+
+        code {
+            background: #f0f0f0;
+            padding: 0.2rem 0.4rem;
+            font-family: var(--font-mono);
+            font-size: 0.85em;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .button-group button {
+            flex: 1;
+        }
+
+        ul, ol {
+            margin-left: 1.5rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <h1>Práctica: Gramáticas Regulares y Aceptadores de Estado Finito</h1>
+        <div class="header-url">José Julián Parra Virgen</div>
+        
+        <details open>
+            <summary>Ayuda y Documentación</summary>
+            <article>
+                <h3>i) Introducción al Tema</h3>
+                <p>Este programa permite convertir entre <strong>Gramáticas Regulares Lineales Derechas</strong> y <strong>Autómatas Finitos No Determinísticos (AFND)</strong>. Estas dos representaciones son equivalentes y describen los <strong>lenguajes regulares</strong>.</p>
+                
+                <h4>Gramática Regular Lineal Derecha</h4>
+                <p>Una gramática es <strong>lineal derecha</strong> si todas sus producciones tienen una de las siguientes formas:</p>
+                <ul>
+                    <li><code>A → aB</code> (un terminal seguido de un no-terminal)</li>
+                    <li><code>A → a</code> (solo un terminal)</li>
+                    <li><code>A → ε</code> (cadena vacía, indica estado de aceptación)</li>
+                </ul>
+                <p>Donde <code>A, B</code> son símbolos no-terminales (estados) y <code>a</code> es un símbolo terminal (del alfabeto).</p>
+
+                <h4>Autómata Finito No Determinístico (AFND)</h4>
+                <p>Un AFND se define formalmente como una 5-tupla: <strong>M = (Q, Σ, δ, q₀, F)</strong> donde:</p>
+                <ul>
+                    <li><strong>Q</strong>: Conjunto finito de estados</li>
+                    <li><strong>Σ</strong>: Alfabeto (conjunto finito de símbolos de entrada)</li>
+                    <li><strong>δ</strong>: Función de transición (Q × Σ → P(Q))</li>
+                    <li><strong>q₀</strong>: Estado inicial (q₀ ∈ Q)</li>
+                    <li><strong>F</strong>: Conjunto de estados de aceptación (F ⊆ Q)</li>
+                </ul>
+
+                <h3>ii) Algoritmos de Conversión</h3>
+                
+                <h4>Gramática → AFND</h4>
+                <ol>
+                    <li>Cada <strong>no-terminal</strong> de la gramática corresponde a un <strong>estado</strong> del autómata</li>
+                    <li>El <strong>símbolo inicial</strong> de la gramática es el <strong>estado inicial</strong> del autómata</li>
+                    <li>Se crea un <strong>estado final adicional</strong> (qf) para las transiciones que terminan sin no-terminal</li>
+                    <li>Para cada producción <code>A → aB</code>: se crea la transición δ(A, a) = B</li>
+                    <li>Para cada producción <code>A → a</code>: se crea la transición δ(A, a) = qf</li>
+                    <li>Para cada producción <code>A → ε</code>: el estado A es también un estado de aceptación</li>
+                </ol>
+
+                <h4>AFND → Gramática</h4>
+                <ol>
+                    <li>Cada <strong>estado</strong> del autómata corresponde a un <strong>no-terminal</strong></li>
+                    <li>El <strong>estado inicial</strong> es el <strong>símbolo inicial</strong> de la gramática</li>
+                    <li>Para cada transición δ(q, a) = p: se crea la producción <code>q → ap</code></li>
+                    <li>Si p es un <strong>estado de aceptación</strong>: también se añade <code>q → a</code></li>
+                    <li>Si el <strong>estado inicial</strong> es de aceptación: se añade <code>S → ε</code></li>
+                </ol>
+
+                <h3>iii) ¿Cómo Utilizar la Interfaz?</h3>
+                
+                <h4>Pestaña "Gramática → AFND"</h4>
+                <ol>
+                    <li><strong>Entrada:</strong> Escribe la gramática en el área de texto o carga un archivo .txt</li>
+                    <li><strong>Formato:</strong> Una producción por línea: <code>S -> aA | bB | a</code></li>
+                    <li><strong>Convertir:</strong> Haz clic en "Convertir a AFND"</li>
+                    <li><strong>Resultado:</strong> Se mostrará la definición formal y la tabla de transiciones</li>
+                </ol>
+
+                <h4>Pestaña "AFND → Gramática"</h4>
+                <ol>
+                    <li><strong>Entrada:</strong> Define los estados, alfabeto, transiciones y estados finales</li>
+                    <li><strong>Formato de transiciones:</strong> <code>estado,símbolo,estado_destino</code> (uno por línea)</li>
+                    <li><strong>Convertir:</strong> Haz clic en "Convertir a Gramática"</li>
+                    <li><strong>Resultado:</strong> Se mostrará la gramática regular equivalente</li>
+                </ol>
+
+                <h3>iv) Formato de Archivos</h3>
+                <h4>Archivo de Gramática (.txt)</h4>
+                <pre class="result-box">S -> aA | bB
+A -> aA | a
+B -> bB | b</pre>
+
+                <h4>Archivo de AFND (.txt)</h4>
+                <pre class="result-box"># Estados (separados por comas)
+ESTADOS: S, A, B, qf
+# Alfabeto
+ALFABETO: a, b
+# Estado inicial
+INICIAL: S
+# Estados finales (separados por comas)
+FINALES: qf
+# Transiciones (estado,símbolo,destino)
+TRANSICIONES:
+S,a,A
+S,b,B
+A,a,A
+A,a,qf
+B,b,B
+B,b,qf</pre>
+
+                <h3>v) Aspectos Técnicos</h3>
+                <ul>
+                    <li><strong>Parser de Gramática:</strong> Analiza las producciones y las clasifica según su forma (aB, a, ε)</li>
+                    <li><strong>Manejo de No-Determinismo:</strong> Un estado puede tener múltiples transiciones con el mismo símbolo</li>
+                    <li><strong>Validación:</strong> Se verifica que la gramática sea efectivamente lineal derecha</li>
+                    <li><strong>Exportación:</strong> Los resultados pueden copiarse o descargarse como archivo</li>
+                </ul>
+
+                <h3>vi) Ejemplos Precargados</h3>
+                <p>Se incluyen varios ejemplos para facilitar la comprensión:</p>
+                <ul>
+                    <li><strong>Cadenas con 'a' y 'b':</strong> Acepta cadenas que terminan en 'a' o 'b'</li>
+                    <li><strong>Números binarios:</strong> Reconoce secuencias de 0s y 1s</li>
+                    <li><strong>Identificadores:</strong> Simula reconocimiento de identificadores simples</li>
+                </ul>
+            </article>
+        </details>
+
+        <!-- Tabs de navegación -->
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('grammar-to-afnd')">Gramática → AFND</div>
+            <div class="tab" onclick="switchTab('afnd-to-grammar')">AFND → Gramática</div>
+        </div>
+
+        <!-- Tab 1: Gramática a AFND -->
+        <div id="grammar-to-afnd" class="tab-content active">
+            <div class="grid">
+                <article>
+                    <header><strong>1. Entrada de Gramática Regular Lineal Derecha</strong></header>
+                    
+                    <div class="file-input-container">
+                        <label class="file-label" for="grammarFile">
+                            Cargar desde archivo
+                        </label>
+                        <input type="file" id="grammarFile" accept=".txt" onchange="loadGrammarFile(event)">
+                    </div>
+                    
+                    <textarea id="grammarInput" placeholder="S -> aA | bB | a
+A -> aA | a
+B -> bB | b
+
+Formato: NO_TERMINAL -> produccion1 | produccion2
+Producciones válidas: aB, a, ε (epsilon)"></textarea>
+                    
+                    <div class="button-group">
+                        <button class="secondary" onclick="clearGrammarInput()">Limpiar</button>
+                        <button onclick="convertGrammarToAFND()">Convertir a AFND</button>
+                    </div>
+                </article>
+
+                <article>
+                    <header><strong>Ejemplos de Gramáticas</strong></header>
+                    <select id="grammarExampleSelector">
+                        <option value="">-- Seleccionar ejemplo --</option>
+                    </select>
+                    <button style="margin-top: 1rem;" onclick="loadGrammarExample()">Cargar Ejemplo</button>
+                    
+                    <div style="margin-top: 1rem; padding: 1rem; background: #f8f8f8; border: 1px solid #ddd;">
+                        <strong>Tip:</strong> El primer no-terminal definido será el símbolo inicial de la gramática.
+                    </div>
+                </article>
+            </div>
+
+            <div id="afnd-results" class="results-container">
+                <article>
+                    <header><strong>Resultado: Autómata Finito No Determinístico</strong></header>
+                    
+                    <div id="afnd-info" class="automaton-info"></div>
+                    
+                    <h4>Definición Formal</h4>
+                    <div id="afnd-formal" class="result-box"></div>
+                    
+                    <h4>Tabla de Transiciones</h4>
+                    <div id="afnd-table"></div>
+                    
+                    <div class="button-group">
+                        <button class="secondary" onclick="copyAFNDResult()">Copiar Resultado</button>
+                        <button class="secondary" onclick="downloadAFNDResult()">Descargar .txt</button>
+                    </div>
+                </article>
+            </div>
+        </div>
+
+        <!-- Tab 2: AFND a Gramática -->
+        <div id="afnd-to-grammar" class="tab-content">
+            <div class="grid">
+                <article>
+                    <header><strong>1. Definición del AFND</strong></header>
+                    
+                    <div class="file-input-container">
+                        <label class="file-label" for="afndFile">
+                            Cargar desde archivo
+                        </label>
+                        <input type="file" id="afndFile" accept=".txt" onchange="loadAFNDFile(event)">
+                    </div>
+                    
+                    <label><strong>Estados</strong> (separados por comas)</label>
+                    <input type="text" id="afndStates" placeholder="S, A, B, qf">
+                    
+                    <label><strong>Alfabeto</strong> (separados por comas)</label>
+                    <input type="text" id="afndAlphabet" placeholder="a, b">
+                    
+                    <label><strong>Estado Inicial</strong></label>
+                    <input type="text" id="afndInitial" placeholder="S">
+                    
+                    <label><strong>Estados Finales</strong> (separados por comas)</label>
+                    <input type="text" id="afndFinal" placeholder="qf">
+                </article>
+
+                <article>
+                    <header><strong>2. Transiciones</strong></header>
+                    <textarea id="afndTransitions" placeholder="S,a,A
+S,b,B
+A,a,A
+A,a,qf
+B,b,B
+B,b,qf
+
+Formato: estado_origen,símbolo,estado_destino
+Una transición por línea"></textarea>
+                    
+                    <div class="button-group">
+                        <button class="secondary" onclick="clearAFNDInput()">Limpiar</button>
+                        <button onclick="convertAFNDToGrammar()">Convertir a Gramática</button>
+                    </div>
+                </article>
+            </div>
+
+            <article>
+                <header><strong>Ejemplos de AFND</strong></header>
+                <div class="grid">
+                    <select id="afndExampleSelector">
+                        <option value="">-- Seleccionar ejemplo --</option>
+                    </select>
+                    <button onclick="loadAFNDExample()">Cargar Ejemplo</button>
+                </div>
+            </article>
+
+            <div id="grammar-results" class="results-container">
+                <article>
+                    <header><strong>Resultado: Gramática Regular Lineal Derecha</strong></header>
+                    
+                    <div id="grammar-info" class="automaton-info"></div>
+                    
+                    <h4>Producciones</h4>
+                    <div id="grammar-output" class="result-box"></div>
+                    
+                    <div class="button-group">
+                        <button class="secondary" onclick="copyGrammarResult()">Copiar Resultado</button>
+                        <button class="secondary" onclick="downloadGrammarResult()">Descargar .txt</button>
+                    </div>
+                </article>
+            </div>
+        </div>
+    </main>
+
+    <div id="notification" class="notification"></div>
+
+    <script>
+        // ==================== ELEMENTOS DEL DOM ====================
+        const grammarInputEl = document.getElementById('grammarInput');
+        const grammarExampleSelectorEl = document.getElementById('grammarExampleSelector');
+        const afndResultsEl = document.getElementById('afnd-results');
+        const afndInfoEl = document.getElementById('afnd-info');
+        const afndFormalEl = document.getElementById('afnd-formal');
+        const afndTableEl = document.getElementById('afnd-table');
+
+        const afndStatesEl = document.getElementById('afndStates');
+        const afndAlphabetEl = document.getElementById('afndAlphabet');
+        const afndInitialEl = document.getElementById('afndInitial');
+        const afndFinalEl = document.getElementById('afndFinal');
+        const afndTransitionsEl = document.getElementById('afndTransitions');
+        const afndExampleSelectorEl = document.getElementById('afndExampleSelector');
+        const grammarResultsEl = document.getElementById('grammar-results');
+        const grammarInfoEl = document.getElementById('grammar-info');
+        const grammarOutputEl = document.getElementById('grammar-output');
+
+        const notificationEl = document.getElementById('notification');
+
+        // ==================== DATOS GLOBALES ====================
+        let currentAFNDResult = null;
+        let currentGrammarResult = null;
+
+        // Ejemplos de gramáticas
+        const GRAMMAR_EXAMPLES = [
+            {
+                name: "Cadenas con 'a' y 'b' (terminan en terminal)",
+                grammar: `S -> aA | bB | a | b
+A -> aA | a
+B -> bB | b`
+            },
+            {
+                name: "Números binarios",
+                grammar: `S -> 0S | 1S | 0 | 1`
+            },
+            {
+                name: "Cadenas que terminan en 'ab'",
+                grammar: `S -> aS | bS | aA
+A -> bB
+B -> ε`
+            },
+            {
+                name: "Identificadores (letra seguida de letras/dígitos)",
+                grammar: `S -> aI | bI | cI | a | b | c
+I -> aI | bI | cI | 0I | 1I | 2I | a | b | c | 0 | 1 | 2`
+            },
+            {
+                name: "Cadenas con número par de 'a's",
+                grammar: `S -> aA | bS | ε
+A -> aS | bA`
+            }
+        ];
+
+        // Ejemplos de AFNDs
+        const AFND_EXAMPLES = [
+            {
+                name: "Cadenas con 'a' y 'b'",
+                states: "S, A, B, qf",
+                alphabet: "a, b",
+                initial: "S",
+                final: "qf",
+                transitions: `S,a,A
+S,b,B
+S,a,qf
+S,b,qf
+A,a,A
+A,a,qf
+B,b,B
+B,b,qf`
+            },
+            {
+                name: "Números binarios",
+                states: "S, qf",
+                alphabet: "0, 1",
+                initial: "S",
+                final: "qf",
+                transitions: `S,0,S
+S,1,S
+S,0,qf
+S,1,qf`
+            },
+            {
+                name: "Cadenas que terminan en 'ab'",
+                states: "S, A, B",
+                alphabet: "a, b",
+                initial: "S",
+                final: "B",
+                transitions: `S,a,S
+S,b,S
+S,a,A
+A,b,B`
+            },
+            {
+                name: "Acepta cadena vacía",
+                states: "S, A, qf",
+                alphabet: "a, b",
+                initial: "S",
+                final: "S, qf",
+                transitions: `S,a,A
+A,b,qf`
+            }
+        ];
+
+        // ==================== FUNCIONES DE UTILIDAD ====================
+        function showNotification(message, duration = 3000) {
+            notificationEl.textContent = message;
+            notificationEl.classList.add('show');
+            setTimeout(() => {
+                notificationEl.classList.remove('show');
+            }, duration);
+        }
+
+        function switchTab(tabId) {
+            // Desactivar todos los tabs
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            // Activar el tab seleccionado
+            document.querySelector(`[onclick="switchTab('${tabId}')"]`).classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+        }
+
+        function populateExamples() {
+            // Poblar ejemplos de gramáticas
+            GRAMMAR_EXAMPLES.forEach((example, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = example.name;
+                grammarExampleSelectorEl.appendChild(option);
+            });
+
+            // Poblar ejemplos de AFNDs
+            AFND_EXAMPLES.forEach((example, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = example.name;
+                afndExampleSelectorEl.appendChild(option);
+            });
+        }
+
+        // ==================== CARGA DE ARCHIVOS ====================
+        function loadGrammarFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                grammarInputEl.value = e.target.result;
+                showNotification('Archivo de gramática cargado correctamente');
+            };
+            reader.readAsText(file);
+        }
+
+        function loadAFNDFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                parseAFNDFile(e.target.result);
+                showNotification('Archivo de AFND cargado correctamente');
+            };
+            reader.readAsText(file);
+        }
+
+        function parseAFNDFile(content) {
+            const lines = content.split('\n');
+            let transitions = [];
+            let inTransitions = false;
+            
+            for (const line of lines) {
+                const trimmed = line.trim();
+                if (trimmed.startsWith('#') || trimmed === '') continue;
+                
+                if (trimmed.startsWith('ESTADOS:')) {
+                    afndStatesEl.value = trimmed.replace('ESTADOS:', '').trim();
+                } else if (trimmed.startsWith('ALFABETO:')) {
+                    afndAlphabetEl.value = trimmed.replace('ALFABETO:', '').trim();
+                } else if (trimmed.startsWith('INICIAL:')) {
+                    afndInitialEl.value = trimmed.replace('INICIAL:', '').trim();
+                } else if (trimmed.startsWith('FINALES:')) {
+                    afndFinalEl.value = trimmed.replace('FINALES:', '').trim();
+                } else if (trimmed.startsWith('TRANSICIONES:')) {
+                    inTransitions = true;
+                } else if (inTransitions && trimmed.includes(',')) {
+                    transitions.push(trimmed);
+                }
+            }
+            
+            afndTransitionsEl.value = transitions.join('\n');
+        }
+
+        // ==================== CARGA DE EJEMPLOS ====================
+        function loadGrammarExample() {
+            const index = grammarExampleSelectorEl.value;
+            if (index === '') {
+                showNotification('Selecciona un ejemplo primero');
+                return;
+            }
+            grammarInputEl.value = GRAMMAR_EXAMPLES[index].grammar;
+            showNotification(`Ejemplo "${GRAMMAR_EXAMPLES[index].name}" cargado`);
+        }
+
+        function loadAFNDExample() {
+            const index = afndExampleSelectorEl.value;
+            if (index === '') {
+                showNotification('Selecciona un ejemplo primero');
+                return;
+            }
+            const example = AFND_EXAMPLES[index];
+            afndStatesEl.value = example.states;
+            afndAlphabetEl.value = example.alphabet;
+            afndInitialEl.value = example.initial;
+            afndFinalEl.value = example.final;
+            afndTransitionsEl.value = example.transitions;
+            showNotification(`Ejemplo "${example.name}" cargado`);
+        }
+
+        // ==================== LIMPIEZA ====================
+        function clearGrammarInput() {
+            grammarInputEl.value = '';
+            afndResultsEl.classList.remove('visible');
+            currentAFNDResult = null;
+        }
+
+        function clearAFNDInput() {
+            afndStatesEl.value = '';
+            afndAlphabetEl.value = '';
+            afndInitialEl.value = '';
+            afndFinalEl.value = '';
+            afndTransitionsEl.value = '';
+            grammarResultsEl.classList.remove('visible');
+            currentGrammarResult = null;
+        }
+
+        // ==================== CONVERSIÓN: GRAMÁTICA → AFND ====================
+        function parseGrammar(input) {
+            const grammar = {
+                nonTerminals: new Set(),
+                terminals: new Set(),
+                productions: {},
+                startSymbol: null
+            };
+            
+            const lines = input.trim().split('\n');
+            
+            for (const line of lines) {
+                if (!line.includes('->')) continue;
+                
+                const [left, right] = line.split('->').map(s => s.trim());
+                if (!left) continue;
+                
+                if (!grammar.startSymbol) {
+                    grammar.startSymbol = left;
+                }
+                
+                grammar.nonTerminals.add(left);
+                
+                if (!grammar.productions[left]) {
+                    grammar.productions[left] = [];
+                }
+                
+                const productions = right.split('|').map(p => p.trim());
+                
+                for (const prod of productions) {
+                    grammar.productions[left].push(prod);
+                    
+                    // Analizar la producción para extraer terminales y no-terminales
+                    if (prod === 'ε' || prod === 'epsilon' || prod === '') {
+                        // Producción épsilon
+                        continue;
+                    }
+                    
+                    // Identificar terminales (minúsculas y dígitos) y no-terminales (mayúsculas)
+                    for (let i = 0; i < prod.length; i++) {
+                        const char = prod[i];
+                        if (/[a-z0-9]/.test(char)) {
+                            grammar.terminals.add(char);
+                        } else if (/[A-Z]/.test(char)) {
+                            // Capturar no-terminal completo (puede ser más de una letra mayúscula)
+                            let nonTerminal = char;
+                            while (i + 1 < prod.length && /[A-Z0-9_]/.test(prod[i + 1])) {
+                                nonTerminal += prod[++i];
+                            }
+                            grammar.nonTerminals.add(nonTerminal);
+                        }
+                    }
+                }
+            }
+            
+            return grammar;
+        }
+
+        function validateLinearRightGrammar(grammar) {
+            const errors = [];
+            const nonTerminalPattern = new RegExp(
+                `^(${Array.from(grammar.nonTerminals).map(nt => nt.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})$`
+            );
+            
+            for (const [nonTerminal, productions] of Object.entries(grammar.productions)) {
+                for (const prod of productions) {
+                    if (prod === 'ε' || prod === 'epsilon' || prod === '') {
+                        continue; // Producción épsilon válida
+                    }
+                    
+                    // Validar que sea de la forma: terminal o terminal+no-terminal
+                    // Extraer el primer carácter (debe ser terminal)
+                    const firstChar = prod[0];
+                    if (!/[a-z0-9]/.test(firstChar)) {
+                        if (nonTerminalPattern.test(prod)) {
+                            errors.push(`Producción inválida: ${nonTerminal} -> ${prod} (no puede ser solo un no-terminal)`);
+                        } else {
+                            errors.push(`Producción inválida: ${nonTerminal} -> ${prod} (debe comenzar con un terminal)`);
+                        }
+                        continue;
+                    }
+                    
+                    const rest = prod.substring(1);
+                    if (rest === '') {
+                        continue; // Producción de la forma A -> a (válida)
+                    }
+                    
+                    // El resto debe ser exactamente un no-terminal
+                    if (!nonTerminalPattern.test(rest) && !/[A-Z][A-Z0-9_]*/.test(rest)) {
+                        // Verificar si tiene más de un terminal
+                        if (/[a-z0-9]/.test(rest)) {
+                            errors.push(`Producción inválida: ${nonTerminal} -> ${prod} (solo un terminal permitido antes del no-terminal)`);
+                        }
+                    }
+                }
+            }
+            
+            return errors;
+        }
+
+        function grammarToAFND(grammar) {
+            const afnd = {
+                states: new Set(grammar.nonTerminals),
+                alphabet: new Set(grammar.terminals),
+                transitions: {},
+                initialState: grammar.startSymbol,
+                finalStates: new Set()
+            };
+            
+            // Crear estado final especial para producciones que terminan en terminal
+            const finalState = 'qf';
+            let needsFinalState = false;
+            
+            // Inicializar transiciones
+            for (const state of afnd.states) {
+                afnd.transitions[state] = {};
+            }
+            
+            // Convertir producciones a transiciones
+            for (const [nonTerminal, productions] of Object.entries(grammar.productions)) {
+                for (const prod of productions) {
+                    if (prod === 'ε' || prod === 'epsilon' || prod === '') {
+                        // A -> ε significa que A es estado de aceptación
+                        afnd.finalStates.add(nonTerminal);
+                        continue;
+                    }
+                    
+                    // Extraer terminal y posible no-terminal
+                    const terminal = prod[0];
+                    const rest = prod.substring(1);
+                    
+                    if (!afnd.transitions[nonTerminal][terminal]) {
+                        afnd.transitions[nonTerminal][terminal] = new Set();
+                    }
+                    
+                    if (rest === '' || !grammar.nonTerminals.has(rest)) {
+                        // A -> a (va al estado final)
+                        needsFinalState = true;
+                        afnd.transitions[nonTerminal][terminal].add(finalState);
+                    } else {
+                        // A -> aB (va al estado B)
+                        afnd.transitions[nonTerminal][terminal].add(rest);
+                    }
+                }
+            }
+            
+            // Agregar estado final si es necesario
+            if (needsFinalState) {
+                afnd.states.add(finalState);
+                afnd.finalStates.add(finalState);
+                afnd.transitions[finalState] = {};
+            }
+            
+            return afnd;
+        }
+
+        function convertGrammarToAFND() {
+            const input = grammarInputEl.value.trim();
+            if (!input) {
+                showNotification('Por favor, ingresa una gramática');
+                return;
+            }
+            
+            const grammar = parseGrammar(input);
+            
+            if (!grammar.startSymbol) {
+                showNotification('Error: No se encontraron producciones válidas');
+                return;
+            }
+            
+            const errors = validateLinearRightGrammar(grammar);
+            if (errors.length > 0) {
+                showNotification('Advertencia: ' + errors[0]);
+            }
+            
+            const afnd = grammarToAFND(grammar);
+            currentAFNDResult = afnd;
+            
+            displayAFNDResult(afnd);
+            afndResultsEl.classList.add('visible');
+            showNotification('Conversión completada exitosamente');
+        }
+
+        function displayAFNDResult(afnd) {
+            // Mostrar información general
+            afndInfoEl.innerHTML = `
+                <div class="info-card">
+                    <div class="info-card-title">Estados |Q|</div>
+                    <div class="info-card-value">${afnd.states.size}</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-title">Alfabeto |Σ|</div>
+                    <div class="info-card-value">${afnd.alphabet.size}</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-title">Estado Inicial</div>
+                    <div class="info-card-value">${afnd.initialState}</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-title">Estados Finales |F|</div>
+                    <div class="info-card-value">${afnd.finalStates.size}</div>
+                </div>
+            `;
+            
+            // Mostrar definición formal
+            const statesArray = Array.from(afnd.states);
+            const alphabetArray = Array.from(afnd.alphabet);
+            const finalStatesArray = Array.from(afnd.finalStates);
+            
+            afndFormalEl.innerHTML = `<strong>M = (Q, Σ, δ, q₀, F)</strong>
+
+<strong>Q</strong> = { ${statesArray.join(', ')} }
+
+<strong>Σ</strong> = { ${alphabetArray.join(', ')} }
+
+<strong>q₀</strong> = ${afnd.initialState}
+
+<strong>F</strong> = { ${finalStatesArray.join(', ')} }
+
+<strong>δ: Función de transición</strong>
+${generateTransitionFunction(afnd)}`;
+            
+            // Generar tabla de transiciones
+            afndTableEl.innerHTML = generateTransitionTable(afnd);
+        }
+
+        function generateTransitionFunction(afnd) {
+            let result = '';
+            for (const state of afnd.states) {
+                for (const symbol of afnd.alphabet) {
+                    const destinations = afnd.transitions[state]?.[symbol];
+                    if (destinations && destinations.size > 0) {
+                        result += `δ(${state}, ${symbol}) = { ${Array.from(destinations).join(', ')} }\n`;
+                    }
+                }
+            }
+            return result || '(Sin transiciones)';
+        }
+
+        function generateTransitionTable(afnd) {
+            const statesArray = Array.from(afnd.states);
+            const alphabetArray = Array.from(afnd.alphabet);
+            
+            let html = '<table class="transition-table">';
+            
+            // Encabezado
+            html += '<thead><tr><th>Estado</th>';
+            for (const symbol of alphabetArray) {
+                html += `<th>${symbol}</th>`;
+            }
+            html += '</tr></thead>';
+            
+            // Filas
+            html += '<tbody>';
+            for (const state of statesArray) {
+                const isInitial = state === afnd.initialState;
+                const isFinal = afnd.finalStates.has(state);
+                
+                let stateLabel = state;
+                let classes = [];
+                if (isInitial) classes.push('state-initial');
+                if (isFinal) classes.push('state-final');
+                
+                html += `<tr><td class="${classes.join(' ')}">`;
+                if (isInitial) html += '→ ';
+                html += stateLabel;
+                html += '</td>';
+                
+                for (const symbol of alphabetArray) {
+                    const destinations = afnd.transitions[state]?.[symbol];
+                    const destStr = destinations && destinations.size > 0 
+                        ? `{ ${Array.from(destinations).join(', ')} }` 
+                        : '∅';
+                    html += `<td>${destStr}</td>`;
+                }
+                html += '</tr>';
+            }
+            html += '</tbody></table>';
+            
+            html += `<p style="margin-top: 0.5rem; font-size: 0.85rem; color: #666;">
+                <span class="badge initial">→</span> Estado inicial
+                <span class="badge final">*</span> Estado de aceptación
+            </p>`;
+            
+            return html;
+        }
+
+        // ==================== CONVERSIÓN: AFND → GRAMÁTICA ====================
+        function parseAFNDInput() {
+            const states = afndStatesEl.value.split(',').map(s => s.trim()).filter(s => s);
+            const alphabet = afndAlphabetEl.value.split(',').map(s => s.trim()).filter(s => s);
+            const initial = afndInitialEl.value.trim();
+            const finalStates = afndFinalEl.value.split(',').map(s => s.trim()).filter(s => s);
+            
+            const transitions = {};
+            const transLines = afndTransitionsEl.value.trim().split('\n');
+            
+            for (const line of transLines) {
+                const parts = line.split(',').map(s => s.trim());
+                if (parts.length !== 3) continue;
+                
+                const [from, symbol, to] = parts;
+                if (!transitions[from]) {
+                    transitions[from] = {};
+                }
+                if (!transitions[from][symbol]) {
+                    transitions[from][symbol] = new Set();
+                }
+                transitions[from][symbol].add(to);
+            }
+            
+            return {
+                states: new Set(states),
+                alphabet: new Set(alphabet),
+                transitions,
+                initialState: initial,
+                finalStates: new Set(finalStates)
+            };
+        }
+
+        function afndToGrammar(afnd) {
+            const grammar = {
+                startSymbol: afnd.initialState,
+                productions: {}
+            };
+            
+            // Inicializar producciones para cada estado (no-terminal)
+            for (const state of afnd.states) {
+                grammar.productions[state] = [];
+            }
+            
+            // Convertir transiciones a producciones
+            for (const [fromState, symbolTransitions] of Object.entries(afnd.transitions)) {
+                for (const [symbol, toStates] of Object.entries(symbolTransitions)) {
+                    for (const toState of toStates) {
+                        if (afnd.finalStates.has(toState)) {
+                            // Si el destino es estado final, agregamos también A -> a
+                            grammar.productions[fromState].push(symbol);
+                        }
+                        // Siempre agregamos A -> aB si B no es el único estado final sin transiciones
+                        if (!afnd.finalStates.has(toState) || Object.keys(afnd.transitions[toState] || {}).length > 0) {
+                            grammar.productions[fromState].push(symbol + toState);
+                        } else if (afnd.finalStates.has(toState)) {
+                            // Si es estado final pero queremos mantener la estructura
+                            grammar.productions[fromState].push(symbol + toState);
+                        }
+                    }
+                }
+            }
+            
+            // Si el estado inicial es de aceptación, agregar S -> ε
+            if (afnd.finalStates.has(afnd.initialState)) {
+                grammar.productions[afnd.initialState].push('ε');
+            }
+            
+            // Eliminar duplicados
+            for (const [nt, prods] of Object.entries(grammar.productions)) {
+                grammar.productions[nt] = [...new Set(prods)];
+            }
+            
+            return grammar;
+        }
+
+        function convertAFNDToGrammar() {
+            const afnd = parseAFNDInput();
+            
+            // Validaciones
+            if (afnd.states.size === 0) {
+                showNotification('Error: Define al menos un estado');
+                return;
+            }
+            if (afnd.alphabet.size === 0) {
+                showNotification('Error: Define el alfabeto');
+                return;
+            }
+            if (!afnd.initialState) {
+                showNotification('Error: Define el estado inicial');
+                return;
+            }
+            if (!afnd.states.has(afnd.initialState)) {
+                showNotification('Error: El estado inicial debe estar en el conjunto de estados');
+                return;
+            }
+            
+            const grammar = afndToGrammar(afnd);
+            currentGrammarResult = grammar;
+            
+            displayGrammarResult(grammar, afnd);
+            grammarResultsEl.classList.add('visible');
+            showNotification('Conversión completada exitosamente');
+        }
+
+        function displayGrammarResult(grammar, afnd) {
+            // Mostrar información general
+            const nonTerminals = Object.keys(grammar.productions).filter(
+                nt => grammar.productions[nt].length > 0
+            );
+            const terminals = new Set();
+            for (const prods of Object.values(grammar.productions)) {
+                for (const prod of prods) {
+                    if (prod !== 'ε') {
+                        terminals.add(prod[0]);
+                    }
+                }
+            }
+            
+            grammarInfoEl.innerHTML = `
+                <div class="info-card">
+                    <div class="info-card-title">No Terminales</div>
+                    <div class="info-card-value">${nonTerminals.length}</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-title">Terminales</div>
+                    <div class="info-card-value">${terminals.size}</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-title">Símbolo Inicial</div>
+                    <div class="info-card-value">${grammar.startSymbol}</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-title">Producciones</div>
+                    <div class="info-card-value">${countProductions(grammar)}</div>
+                </div>
+            `;
+            
+            // Generar texto de la gramática
+            let grammarText = `# Gramática Regular Lineal Derecha\n`;
+            grammarText += `# Generada desde AFND\n\n`;
+            grammarText += `# No Terminales: { ${nonTerminals.join(', ')} }\n`;
+            grammarText += `# Terminales: { ${Array.from(terminals).join(', ')} }\n`;
+            grammarText += `# Símbolo Inicial: ${grammar.startSymbol}\n\n`;
+            
+            // Ordenar: símbolo inicial primero
+            const orderedNTs = [grammar.startSymbol, ...nonTerminals.filter(nt => nt !== grammar.startSymbol)];
+            
+            for (const nt of orderedNTs) {
+                const prods = grammar.productions[nt];
+                if (prods && prods.length > 0) {
+                    grammarText += `${nt} -> ${prods.join(' | ')}\n`;
+                }
+            }
+            
+            grammarOutputEl.textContent = grammarText;
+        }
+
+        function countProductions(grammar) {
+            let count = 0;
+            for (const prods of Object.values(grammar.productions)) {
+                count += prods.length;
+            }
+            return count;
+        }
+
+        // ==================== COPIAR Y DESCARGAR ====================
+        function copyAFNDResult() {
+            if (!currentAFNDResult) {
+                showNotification('No hay resultado para copiar');
+                return;
+            }
+            
+            const text = generateAFNDText(currentAFNDResult);
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification('Resultado copiado al portapapeles');
+            });
+        }
+
+        function downloadAFNDResult() {
+            if (!currentAFNDResult) {
+                showNotification('No hay resultado para descargar');
+                return;
+            }
+            
+            const text = generateAFNDText(currentAFNDResult);
+            downloadFile(text, 'afnd_resultado.txt');
+        }
+
+        function generateAFNDText(afnd) {
+            let text = `# Autómata Finito No Determinístico (AFND)\n`;
+            text += `# Generado desde Gramática Regular Lineal Derecha\n\n`;
+            text += `ESTADOS: ${Array.from(afnd.states).join(', ')}\n`;
+            text += `ALFABETO: ${Array.from(afnd.alphabet).join(', ')}\n`;
+            text += `INICIAL: ${afnd.initialState}\n`;
+            text += `FINALES: ${Array.from(afnd.finalStates).join(', ')}\n`;
+            text += `TRANSICIONES:\n`;
+            
+            for (const [state, symbolTrans] of Object.entries(afnd.transitions)) {
+                for (const [symbol, destinations] of Object.entries(symbolTrans)) {
+                    for (const dest of destinations) {
+                        text += `${state},${symbol},${dest}\n`;
+                    }
+                }
+            }
+            
+            return text;
+        }
+
+        function copyGrammarResult() {
+            if (!currentGrammarResult) {
+                showNotification('No hay resultado para copiar');
+                return;
+            }
+            
+            const text = grammarOutputEl.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification('Resultado copiado al portapapeles');
+            });
+        }
+
+        function downloadGrammarResult() {
+            if (!currentGrammarResult) {
+                showNotification('No hay resultado para descargar');
+                return;
+            }
+            
+            const text = grammarOutputEl.textContent;
+            downloadFile(text, 'gramatica_resultado.txt');
+        }
+
+        function downloadFile(content, filename) {
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showNotification(`Archivo "${filename}" descargado`);
+        }
+
+        // ==================== INICIALIZACIÓN ====================
+        document.addEventListener('DOMContentLoaded', () => {
+            populateExamples();
+            // Cargar primer ejemplo por defecto
+            grammarInputEl.value = GRAMMAR_EXAMPLES[0].grammar;
+        });
+    </script>
+</body>
+</html>
