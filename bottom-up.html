@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analizador Bottom-Up (Shift-Reduce)</title>
+    <style>
+        :root {
+            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: #fff;
+            color: #000;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+
+        main.container {
+            max-width: 1024px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 1.75rem;
+            margin-bottom: 0.5rem;
+            font-weight: 400;
+            letter-spacing: 0.05em;
+        }
+        
+        .header-url {
+            text-align: center;
+            font-family: var(--font-mono);
+            color: #888;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+        }
+        
+        h3 {
+           font-size: 1.1rem;
+           margin-top: 1.5rem;
+           border-bottom: 1px solid #000;
+           padding-bottom: 0.5rem;
+           font-weight: 400;
+        }
+
+        article {
+            border: 1px solid #000;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            background: #fff;
+        }
+        
+        article > header {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .grid {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        @media (min-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        
+        /* Inputs */
+        textarea#grammarInput {
+            width: 100%;
+            box-sizing: border-box;
+            height: 200px;
+            resize: none;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            padding: 0.75rem;
+            border: 1px solid #000;
+            margin-bottom: 1rem;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            box-sizing: border-box;
+            font-family: var(--font-mono);
+            font-size: 1rem;
+            padding: 0.75rem;
+            border: 1px solid #000;
+            margin-bottom: 1rem;
+        }
+
+        textarea:focus, input:focus {
+            outline: 2px solid #000;
+            outline-offset: 2px;
+        }
+
+        /* Botones */
+        button {
+            background: #000;
+            color: #fff;
+            border: 1px solid #000;
+            padding: 0.75rem 1.5rem;
+            font-size: 0.8rem;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: all 0.2s;
+            width: 100%;
+            font-weight: 600;
+        }
+
+        button:hover {
+            background: #333;
+            border-color: #333;
+        }
+
+        button.secondary {
+            background: #fff;
+            color: #000;
+            width: auto;
+            padding: 0.5rem 1rem;
+        }
+
+        button.secondary:hover {
+            background: #f0f0f0;
+        }
+
+        /* Tabla de Análisis */
+        table.parsing-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            margin-top: 1rem;
+        }
+
+        table.parsing-table th, 
+        table.parsing-table td {
+            border: 1px solid #000;
+            padding: 8px;
+            text-align: left;
+        }
+
+        table.parsing-table th {
+            background-color: #f0f0f0;
+            font-weight: 600;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            border: 1px solid #000;
+        }
+        
+        .status-success { background-color: #000; color: #fff; }
+        .status-fail { background-color: #fff; color: red; border-color: red; }
+        .status-pending { background-color: #eee; color: #555; border-style: dashed; }
+
+        /* Detalles / Ayuda */
+        details {
+            border: 1px solid #000;
+            padding: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        details > summary {
+            cursor: pointer;
+            font-weight: 500;
+        }
+        
+        details article {
+            border: none;
+            padding: 1rem 0 0 0;
+            margin: 0;
+        }
+
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translate(-50%, 100px);
+            background-color: #000;
+            color: #fff;
+            padding: 12px 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            transition: transform 0.4s ease-in-out;
+            z-index: 1000;
+        }
+
+        .notification.show {
+            transform: translate(-50%, 0);
+        }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <h1>Analizador Bottom-Up</h1>
+        <div class="header-url">Shift-Reduce / Backtracking</div>
+        
+        <details>
+            <summary>¿Cómo funciona este analizador?</summary>
+            <article>
+                <h3>Análisis Ascendente (Bottom-Up)</h3>
+                <p>Este programa verifica si una cadena pertenece al lenguaje descrito por la gramática utilizando un algoritmo de <strong>Desplazamiento y Reducción con Retroceso (Backtracking)</strong>.</p>
+                <ul>
+                    <li><strong>Shift (Desplazar):</strong> Mueve símbolos de la entrada a la pila.</li>
+                    <li><strong>Reduce (Reducir):</strong> Reemplaza símbolos en el tope de la pila por un No-Terminal, según las reglas gramaticales.</li>
+                    <li><strong>Backtracking:</strong> Si el analizador llega a un punto muerto, retrocede a un estado anterior guardado en la pila para probar una regla diferente.</li>
+                </ul>
+                <p><strong>Instrucciones:</strong> Define tu gramática en el panel izquierdo y la cadena a probar en el derecho. El sistema generará la tabla de pasos automáticamente.</p>
+            </article>
+        </details>
+
+        <div class="grid">
+            <article>
+                <header>
+                    <span>1. Definir Gramática</span>
+                </header>
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
+                    <button class="secondary" onclick="loadExample(1)">Aritmetica</button>
+                    <button class="secondary" onclick="loadExample(2)">Sumas</button>
+                    <button class="secondary" onclick="loadExample(3)">Listas</button>
+                    <button class="secondary" onclick="loadExample(4)">Con resta</button>
+                </div>
+                <textarea id="grammarInput" placeholder="S -> E&#10;E -> E+T | T&#10;T -> T*F | F&#10;F -> (E) | n"></textarea>
+                <p style="font-size: 0.8rem; color: #666;">Formato: <code>S -> A | b</code>. La primera regla define el simbolo inicial. Usa <code>|</code> para alternativas.</p>
+            </article>
+            
+            <article>
+                <header><span>2. Cadena a Analizar</span></header>
+                <input type="text" id="inputString" placeholder="ej: n+n*n, (n+n)*n" value="n+n*n">
+                <button id="analyzeButton" onclick="performAnalysis()">Analizar Cadena</button>
+                <div id="finalResult" style="margin-top: 1rem; text-align: center;"></div>
+            </article>
+        </div>
+        
+        <article id="results-container" style="display:none;">
+            <header>
+                <span>Tabla de Análisis (Paso a Paso)</span>
+                <span id="step-counter" style="font-family: var(--font-mono);">0 pasos</span>
+            </header>
+            <div style="overflow-x: auto;">
+                <table class="parsing-table" id="tablaPasos">
+                    <thead>
+                        <tr>
+                            <th style="width: 30%">Pila (Stack)</th>
+                            <th style="width: 30%">Entrada (Input)</th>
+                            <th style="width: 40%">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        </tbody>
+                </table>
+            </div>
+        </article>
+
+    </main>
+
+    <div id="notification" class="notification"></div>
+
+    <script>
+        // --- 1. ESTRUCTURAS DE DATOS ---
+        
+        class Regla {
+            constructor(izq, der) {
+                this.izq = izq;
+                this.der = der;
+            }
+        }
+
+        class Estado {
+            constructor(phi, i, psi) {
+                this.phi = phi;  // Contenido de la pila
+                this.i = i;      // Indice de la ultima regla probada
+                this.psi = psi;  // Entrada restante por procesar
+            }
+        }
+
+        // --- 2. LOGICA DEL ANALIZADOR ---
+
+        function parseGrammar(text) {
+            const reglas = [];
+            const lines = text.trim().split('\n');
+            let simboloInicial = null;
+
+            lines.forEach(line => {
+                if(!line.includes('->')) return;
+                const [izq, derBlock] = line.split('->');
+                const cleanIzq = izq.trim();
+                
+                if (!simboloInicial) simboloInicial = cleanIzq;
+
+                const producciones = derBlock.split('|');
+                producciones.forEach(prod => {
+                    let cleanDer = prod.trim();
+                    // Convertir epsilon a cadena vacia
+                    if (cleanDer === 'ε') cleanDer = '';
+                    reglas.push(new Regla(cleanIzq, cleanDer));
+                });
+            });
+
+            return { reglas, simboloInicial };
+        }
+
+        function performAnalysis() {
+            // UI Reset
+            const grammarText = document.getElementById('grammarInput').value;
+            const inputText = document.getElementById('inputString').value;
+            const tableBody = document.querySelector("#tablaPasos tbody");
+            const resultDiv = document.getElementById('results-container');
+            const finalResultDiv = document.getElementById('finalResult');
+            const stepCounter = document.getElementById('step-counter');
+            
+            tableBody.innerHTML = "";
+            finalResultDiv.innerHTML = "<span class='status-badge status-pending'>Analizando...</span>";
+            resultDiv.style.display = 'block';
+
+            // Convertir texto de gramatica a lista de reglas
+            const { reglas, simboloInicial } = parseGrammar(grammarText);
+            
+            if (reglas.length === 0) {
+                showNotification("Error: Gramática vacía o inválida");
+                return;
+            }
+
+            // Mostrar configuracion inicial en la tabla
+            addTableRow("", inputText, "<strong>Estado Inicial</strong>");
+
+            // Inicializar pila del algoritmo
+            let pila = [];
+            pila.push(new Estado("", -1, inputText));
+
+            let pasos = 0;
+            let exito = false;
+            const MAX_STEPS = 500;
+
+            while (pila.length > 0) {
+                pasos++;
+                if (pasos > MAX_STEPS) {
+                    addTableRow("...", "...", "Detenido: Maximo de pasos alcanzado");
+                    break;
+                }
+
+                let actual = pila.pop();
+
+                // Buscar reduccion aplicable (k > actual.i)
+                let k = -1;
+                for (let r = actual.i + 1; r < reglas.length; r++) {
+                    // Ignorar reglas epsilon - no soportadas
+                    if (reglas[r].der === '') continue;
+                    
+                    // No reducir al simbolo inicial si aun hay entrada
+                    if (reglas[r].izq === simboloInicial && actual.psi !== '') continue;
+                    
+                    if (actual.phi.endsWith(reglas[r].der)) {
+                        k = r;
+                        break;
+                    }
+                }
+
+                if (k !== -1) {
+                    // REDUCCION
+                    pila.push(new Estado(actual.phi, k, actual.psi, 0));
+                    
+                    const regla = reglas[k];
+                    addTableRow(actual.phi, actual.psi, `<strong>Reducir</strong> por ${regla.izq} &rarr; ${regla.der}`);
+                    
+                    const nuevoPhi = actual.phi.slice(0, -regla.der.length) + regla.izq;
+                    
+                    if (nuevoPhi === simboloInicial && actual.psi === "") {
+                        addTableRow(nuevoPhi, "", "<strong>¡ACEPTADA!</strong>");
+                        exito = true;
+                        break;
+                    }
+                    pila.push(new Estado(nuevoPhi, -1, actual.psi, 0));
+                    
+                } else if (actual.psi.length > 0) {
+                    // SHIFT
+                    const s = actual.psi[0];
+                    addTableRow(actual.phi, actual.psi, `<strong>Desplazar</strong> (Shift) '${s}'`);
+                    pila.push(new Estado(actual.phi + s, -1, actual.psi.substring(1), 0));
+                    
+                } else {
+                    // BACKTRACK
+                    addTableRow(actual.phi, actual.psi, "<em>Backtrack</em> (probando otra alternativa)");
+                }
+            }
+
+            // Resultado Final
+            stepCounter.textContent = `${pasos} pasos`;
+            if (exito) {
+                finalResultDiv.innerHTML = "<span class='status-badge status-success'>Cadena Válida</span>";
+                showNotification("Análisis completado con éxito.");
+            } else {
+                finalResultDiv.innerHTML = "<span class='status-badge status-fail'>Cadena Inválida</span>";
+                showNotification("La cadena no pertenece al lenguaje.");
+            }
+        }
+
+        // --- 3. UTILIDADES UI ---
+        function addTableRow(stack, input, action) {
+            const tbody = document.querySelector("#tablaPasos tbody");
+            const row = document.createElement('tr');
+            
+            // Formatear vacíos como $ o lambda visual
+            const visualStack = stack === "" ? "$" : stack;
+            const visualInput = input === "" ? "$" : input;
+
+            row.innerHTML = `
+                <td>${visualStack}</td>
+                <td>${visualInput}</td>
+                <td>${action}</td>
+            `;
+            tbody.appendChild(row);
+        }
+
+        function loadExample(num = 1) {
+            const ejemplos = {
+                1: {
+                    nombre: "Expresiones aritmeticas (suma y producto)",
+                    gramatica: "S -> E\nE -> E+T | T\nT -> T*F | F\nF -> (E) | n",
+                    cadena: "n+n*n"
+                },
+                2: {
+                    nombre: "Expresiones simples (solo suma)",
+                    gramatica: "S -> E\nE -> E+n | n",
+                    cadena: "n+n+n"
+                },
+                3: {
+                    nombre: "Listas con separador",
+                    gramatica: "S -> L\nL -> L,i | i",
+                    cadena: "i,i,i,i"
+                },
+                4: {
+                    nombre: "Expresiones con resta",
+                    gramatica: "S -> E\nE -> E+T | E-T | T\nT -> T*n | n",
+                    cadena: "n*n+n-n"
+                }
+            };
+            const ej = ejemplos[num];
+            document.getElementById('grammarInput').value = ej.gramatica;
+            document.getElementById('inputString').value = ej.cadena;
+            showNotification(`Ejemplo: ${ej.nombre}`);
+        }
+
+        function showNotification(message) {
+            const n = document.getElementById('notification');
+            n.textContent = message;
+            n.classList.add('show');
+            setTimeout(() => n.classList.remove('show'), 3000);
+        }
+    </script>
+</body>
+</html>
